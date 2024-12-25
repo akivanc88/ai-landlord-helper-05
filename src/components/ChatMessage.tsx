@@ -1,12 +1,12 @@
 import { cn } from "@/lib/utils";
 
 interface ChatMessageProps {
-  message: string;
+  text: string;
   isAi: boolean;
   timestamp: string;
 }
 
-export const ChatMessage = ({ message, isAi, timestamp }: ChatMessageProps) => {
+export const ChatMessage = ({ text, isAi, timestamp }: ChatMessageProps) => {
   return (
     <div
       className={cn(
@@ -23,7 +23,7 @@ export const ChatMessage = ({ message, isAi, timestamp }: ChatMessageProps) => {
         {isAi ? "AI" : "You"}
       </div>
       <div className="flex-1">
-        <p className="text-sm text-slate-600">{message}</p>
+        <p className="text-sm text-slate-600">{text}</p>
         <span className="mt-2 text-xs text-slate-400">{timestamp}</span>
       </div>
     </div>
