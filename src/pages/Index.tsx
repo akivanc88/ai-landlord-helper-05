@@ -2,6 +2,9 @@ import { useState } from "react";
 import { ChatInput } from "@/components/ChatInput";
 import { ChatMessage } from "@/components/ChatMessage";
 import { RoleSelection } from "@/components/RoleSelection";
+import { AuthForm } from "@/components/AuthForm";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
 
 interface Message {
   text: string;
@@ -10,6 +13,7 @@ interface Message {
 }
 
 const Index = () => {
+  const { user, signOut } = useAuth();
   const [role, setRole] = useState<"landlord" | "tenant" | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -35,6 +39,26 @@ const Index = () => {
     }, 1000);
   };
 
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-slate-50 py-12">
+        <div className="container mx-auto max-w-4xl px-4">
+          <div className="mb-12 text-center">
+            <h1 className="mb-4 text-4xl font-bold text-slate-900">
+              BC Housing Legal Assistant
+            </h1>
+            <p className="text-lg text-slate-600">
+              Get instant answers to your housing-related legal questions
+            </p>
+          </div>
+          <div className="flex justify-center">
+            <AuthForm />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!role) {
     return (
       <div className="container mx-auto max-w-4xl px-4 py-12">
@@ -58,9 +82,19 @@ const Index = () => {
           <h1 className="text-xl font-semibold text-slate-900">
             BC Housing Legal Assistant
           </h1>
-          <span className="rounded-full bg-primary px-4 py-1 text-sm text-white">
-            {role === "landlord" ? "Landlord" : "Tenant"}
-          </span>
+          <div className="flex items-center gap-4">
+            <span className="rounded-full bg-primary px-4 py-1 text-sm text-white">
+              {role === "landlord" ? "Landlord" : "Tenant"}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => signOut()}
+              className="text-sm"
+            >
+              Sign Out
+            </Button>
+          </div>
         </div>
       </header>
 
