@@ -1,9 +1,8 @@
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { motion } from "framer-motion";
+import { UserRole } from "@/types/chat";
 
 interface RoleSelectionProps {
-  onSelect: (role: "landlord" | "tenant") => void;
+  onSelect: (role: UserRole) => void;
 }
 
 export const RoleSelection = ({ onSelect }: RoleSelectionProps) => {
