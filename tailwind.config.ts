@@ -25,24 +25,24 @@ export default {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "#64748b",
+          DEFAULT: "#003366", // BC Government blue
           foreground: "#ffffff",
         },
         secondary: {
-          DEFAULT: "#84cc16",
-          foreground: "#ffffff",
+          DEFAULT: "#fcba19", // BC Government gold
+          foreground: "#000000",
         },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
         },
         muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
+          DEFAULT: "#f2f2f2", // Light gray for backgrounds
+          foreground: "#313132", // Dark gray for text
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
+          DEFAULT: "#38598a", // Secondary blue
+          foreground: "#ffffff",
         },
         popover: {
           DEFAULT: "hsl(var(--popover))",
@@ -54,9 +54,9 @@ export default {
         },
       },
       borderRadius: {
-        lg: "12px",
-        md: "8px",
-        sm: "4px",
+        lg: "4px",
+        md: "4px",
+        sm: "2px",
       },
       keyframes: {
         "accordion-down": {

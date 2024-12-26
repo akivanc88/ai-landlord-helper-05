@@ -10,21 +10,21 @@ export const ChatMessage = ({ text, isAi, timestamp }: ChatMessageProps) => {
   return (
     <div
       className={cn(
-        "flex w-full animate-fadeIn gap-4 p-4",
-        isAi ? "bg-slate-50" : "bg-white"
+        "flex w-full animate-fadeIn gap-4 p-6 border-b",
+        isAi ? "bg-[#f2f2f2]" : "bg-white"
       )}
     >
       <div
         className={cn(
-          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
-          isAi ? "bg-primary text-white" : "bg-secondary text-white"
+          "flex h-8 w-8 shrink-0 items-center justify-center rounded",
+          isAi ? "bg-primary text-white" : "bg-secondary text-black"
         )}
       >
         {isAi ? "AI" : "You"}
       </div>
       <div className="flex-1">
-        <p className="text-sm text-slate-600">{text}</p>
-        <span className="mt-2 text-xs text-slate-400">{timestamp}</span>
+        <p className="text-[#313132] text-base leading-relaxed">{text}</p>
+        <span className="mt-2 text-sm text-[#606060]">{timestamp}</span>
       </div>
     </div>
   );

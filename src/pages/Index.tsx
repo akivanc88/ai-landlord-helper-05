@@ -19,13 +19,13 @@ const Index = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-slate-50 py-12">
+      <div className="min-h-screen bg-[#f2f2f2] py-12">
         <div className="container mx-auto max-w-4xl px-4">
           <div className="mb-12 text-center">
-            <h1 className="mb-4 text-4xl font-bold text-slate-900">
+            <h1 className="mb-4 text-4xl font-bold text-primary">
               BC Housing Legal Assistant
             </h1>
-            <p className="text-lg text-slate-600">
+            <p className="text-lg text-[#313132]">
               Get instant answers to your housing-related legal questions
             </p>
           </div>
@@ -41,10 +41,10 @@ const Index = () => {
     return (
       <div className="container mx-auto max-w-4xl px-4 py-12">
         <div className="mb-12 text-center">
-          <h1 className="mb-4 text-4xl font-bold text-slate-900">
+          <h1 className="mb-4 text-4xl font-bold text-primary">
             BC Housing Legal Assistant
           </h1>
-          <p className="text-lg text-slate-600">
+          <p className="text-lg text-[#313132]">
             Get instant answers to your housing-related legal questions
           </p>
         </div>
@@ -54,29 +54,29 @@ const Index = () => {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-slate-50">
-      <header className="border-b bg-white p-4 shadow-sm">
+    <div className="flex h-screen flex-col bg-[#f2f2f2]">
+      <header className="border-b bg-primary py-4">
         <div className="container mx-auto flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-slate-900">
+          <h1 className="text-xl font-semibold text-white">
             BC Housing Legal Assistant
           </h1>
           <div className="flex items-center gap-4">
             <Button
-              variant="outline"
+              variant="secondary"
               size="sm"
               onClick={handleRoleSwitch}
-              className="text-sm"
+              className="text-sm font-semibold bg-secondary text-black hover:bg-secondary/90"
             >
               Switch to {role === "landlord" ? "Tenant" : "Landlord"}
             </Button>
-            <span className="rounded-full bg-primary px-4 py-1 text-sm text-white">
+            <span className="rounded bg-accent px-4 py-1 text-sm text-white">
               {role === "landlord" ? "Landlord" : "Tenant"}
             </span>
             <Button
-              variant="outline"
+              variant="secondary"
               size="sm"
               onClick={() => signOut()}
-              className="text-sm"
+              className="text-sm font-semibold bg-secondary text-black hover:bg-secondary/90"
             >
               Sign Out
             </Button>
@@ -88,12 +88,12 @@ const Index = () => {
         <div className="container mx-auto max-w-4xl">
           {messages.length === 0 ? (
             <div className="flex h-full items-center justify-center">
-              <p className="text-center text-slate-500">
+              <p className="text-center text-[#606060]">
                 Start by asking a question about BC housing laws and regulations
               </p>
             </div>
           ) : (
-            <div className="divide-y">
+            <div className="divide-y divide-[#e3e3e3]">
               {messages.map((msg, index) => (
                 <ChatMessage key={index} {...msg} />
               ))}

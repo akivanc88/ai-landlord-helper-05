@@ -18,17 +18,17 @@ export const ChatInput = ({ onSend, isLoading }: ChatInputProps) => {
   };
 
   return (
-    <div className="flex animate-slideUp flex-col gap-4 border-t bg-white p-4">
+    <div className="flex animate-slideUp flex-col gap-4 border-t bg-white p-6">
       <Textarea
         placeholder="Type your question here..."
         value={message}
         onChange={(e) => setMessage(e.target.value)}
-        className="min-h-[100px] resize-none rounded-lg border-slate-200"
+        className="min-h-[100px] resize-none rounded border-[#606060] focus:border-primary focus:ring-primary"
       />
       <Button
         onClick={handleSend}
         disabled={isLoading || !message.trim()}
-        className="ml-auto w-24"
+        className="ml-auto w-32 bg-primary hover:bg-accent text-white font-semibold"
       >
         {isLoading ? "Sending..." : "Send"}
       </Button>
