@@ -60,6 +60,33 @@ export type Database = {
         }
         Relationships: []
       }
+      question_credits: {
+        Row: {
+          created_at: string | null
+          expiry_date: string | null
+          id: string
+          is_purchased: boolean | null
+          remaining_questions: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expiry_date?: string | null
+          id?: string
+          is_purchased?: boolean | null
+          remaining_questions: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expiry_date?: string | null
+          id?: string
+          is_purchased?: boolean | null
+          remaining_questions?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

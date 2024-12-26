@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { useChat } from "@/hooks/useChat";
 import { UserRole } from "@/types/chat";
+import { ProfileSection } from "@/components/ProfileSection";
 
 const Index = () => {
   const { user, signOut } = useAuth();
@@ -84,8 +85,12 @@ const Index = () => {
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto">
-        <div className="container mx-auto max-w-4xl">
+      <div className="container mx-auto max-w-4xl py-6 px-4">
+        <div className="mb-6">
+          <ProfileSection userId={user.id} />
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
           {messages.length === 0 ? (
             <div className="flex h-full items-center justify-center">
               <p className="text-center text-[#606060]">
@@ -100,10 +105,10 @@ const Index = () => {
             </div>
           )}
         </div>
-      </div>
 
-      <div className="container mx-auto max-w-4xl">
-        <ChatInput onSend={sendMessage} isLoading={isLoading} />
+        <div className="mt-6">
+          <ChatInput onSend={sendMessage} isLoading={isLoading} />
+        </div>
       </div>
     </div>
   );
