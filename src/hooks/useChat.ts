@@ -13,7 +13,8 @@ export const useChat = (user: User | null, role: UserRole | null) => {
     if (!user || !role) return;
     
     try {
-      await supabase.rpc('set_app_role', { role_value: role as string });
+      // Type assertion to tell TypeScript that role is a valid string parameter
+      await supabase.rpc('set_app_role', { role_value: role });
       
       const { data, error } = await supabase
         .from('messages')

@@ -65,7 +65,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      set_app_role: {
+        Args: {
+          role_value: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
