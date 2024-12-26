@@ -13,7 +13,7 @@ export const useChat = (user: User | null, role: UserRole | null) => {
     if (!user || !role) return;
     
     try {
-      await supabase.rpc('set_app_role', { role_value: role });
+      await supabase.rpc('set_app_role', { role_value: role as string });
       
       const { data, error } = await supabase
         .from('messages')
