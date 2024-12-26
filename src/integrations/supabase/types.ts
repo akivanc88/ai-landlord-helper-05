@@ -14,24 +14,27 @@ export type Database = {
           created_at: string | null
           id: string
           is_ai: boolean
+          role: string | null
           text: string
-          timestamp: string
+          timestamp: string | null
           user_id: string
         }
         Insert: {
           created_at?: string | null
           id?: string
-          is_ai: boolean
+          is_ai?: boolean
+          role?: string | null
           text: string
-          timestamp: string
+          timestamp?: string | null
           user_id: string
         }
         Update: {
           created_at?: string | null
           id?: string
           is_ai?: boolean
+          role?: string | null
           text?: string
-          timestamp?: string
+          timestamp?: string | null
           user_id?: string
         }
         Relationships: []
