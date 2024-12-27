@@ -11,6 +11,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { useToast } from "@/components/ui/use-toast";
 import { AppHeader } from "@/components/header/AppHeader";
 import { ChatContainer } from "@/components/chat/ChatContainer";
+import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const { user, signOut } = useAuth();
