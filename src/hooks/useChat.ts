@@ -4,16 +4,15 @@ import { useToast } from "@/components/ui/use-toast";
 import { Message, UserRole } from "@/types/chat";
 import { User } from "@supabase/supabase-js";
 
-export const useChat = (user: User | null, role: UserRole | null) => {
+export const useChat = (user: User | null, role: UserRole | null, threadId: string | null) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const fetchMessages = async () => {
-    if (!user || !role) return;
+    if (!user || !role || !threadId) return;
     
     try {
-      // Type assertion to tell TypeScript that role is a valid string parameter
       await supabase.rpc('set_app_role', { role_value: role });
       
       const { data, error } = await supabase
@@ -21,6 +20,7 @@ export const useChat = (user: User | null, role: UserRole | null) => {
         .select('*')
         .eq('user_id', user.id)
         .eq('role', role)
+        .eq('thread_id', threadId)
         .order('timestamp', { ascending: true });
 
       if (error) throw error;
@@ -43,7 +43,7 @@ export const useChat = (user: User | null, role: UserRole | null) => {
   };
 
   const sendMessage = async (message: string) => {
-    if (!user || !role) return;
+    if (!user || !role || !threadId) return;
     
     setIsLoading(true);
     try {
@@ -54,6 +54,7 @@ export const useChat = (user: User | null, role: UserRole | null) => {
           user_id: user.id,
           is_ai: false,
           role: role,
+          thread_id: threadId,
         });
 
       if (insertError) throw insertError;
@@ -76,6 +77,7 @@ export const useChat = (user: User | null, role: UserRole | null) => {
             user_id: user.id,
             is_ai: true,
             role: role,
+            thread_id: threadId,
           });
 
         if (aiInsertError) throw aiInsertError;
@@ -100,10 +102,12 @@ export const useChat = (user: User | null, role: UserRole | null) => {
   };
 
   useEffect(() => {
-    if (user && role) {
+    if (user && role && threadId) {
       fetchMessages();
+    } else {
+      setMessages([]);
     }
-  }, [user, role]);
+  }, [user, role, threadId]);
 
   return {
     messages,
