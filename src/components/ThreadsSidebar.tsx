@@ -1,8 +1,4 @@
-import { Button } from "@/components/ui/button";
 import { Thread } from "@/types/thread";
-import { PlusCircle, Edit2 } from "lucide-react";
-import { useState } from "react";
-import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -10,12 +6,10 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import { ThreadHeader } from "./threads/ThreadHeader";
+import { ThreadList } from "./threads/ThreadList";
 
 interface ThreadsSidebarProps {
   threads: Thread[];
@@ -30,23 +24,14 @@ export const ThreadsSidebar = ({
   onThreadSelect,
   onNewThread,
 }: ThreadsSidebarProps) => {
-  const [editingThreadId, setEditingThreadId] = useState<string | null>(null);
-  const [editTitle, setEditTitle] = useState("");
   const { toast } = useToast();
 
-  const handleEditStart = (thread: Thread) => {
-    setEditingThreadId(thread.id);
-    setEditTitle(thread.title);
-  };
-
-  const handleEditSave = async () => {
-    if (!editingThreadId) return;
-
+  const handleEditSave = async (threadId: string, newTitle: string) => {
     try {
       const { error } = await supabase
         .from('conversation_threads')
-        .update({ title: editTitle })
-        .eq('id', editingThreadId);
+        .update({ title: newTitle })
+        .eq('id', threadId);
 
       if (error) throw error;
 
@@ -55,7 +40,6 @@ export const ThreadsSidebar = ({
         description: "Thread title updated successfully",
       });
 
-      // Update the thread title in the local state through a page refresh
       window.location.reload();
     } catch (error) {
       console.error('Error updating thread title:', error);
@@ -65,79 +49,20 @@ export const ThreadsSidebar = ({
         description: "Failed to update thread title",
       });
     }
-
-    setEditingThreadId(null);
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleEditSave();
-    } else if (e.key === 'Escape') {
-      setEditingThreadId(null);
-    }
   };
 
   return (
     <Sidebar variant="inset" collapsible="icon">
       <SidebarContent>
         <SidebarGroup>
-          <div className="flex items-center justify-between px-4 py-2">
-            <SidebarGroupLabel>Conversations</SidebarGroupLabel>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onNewThread}
-              className="h-8 w-8"
-            >
-              <PlusCircle className="h-5 w-5" />
-            </Button>
-          </div>
+          <ThreadHeader onNewThread={onNewThread} />
           <SidebarGroupContent>
-            <SidebarMenu>
-              {threads.map((thread) => (
-                <SidebarMenuItem key={thread.id}>
-                  {editingThreadId === thread.id ? (
-                    <div className="flex w-full gap-2 px-2">
-                      <Input
-                        value={editTitle}
-                        onChange={(e) => setEditTitle(e.target.value)}
-                        onKeyDown={handleKeyPress}
-                        onBlur={handleEditSave}
-                        autoFocus
-                        className="h-8"
-                      />
-                    </div>
-                  ) : (
-                    <div className="group relative w-full">
-                      <SidebarMenuButton
-                        onClick={() => onThreadSelect(thread.id)}
-                        className={`w-full ${
-                          activeThreadId === thread.id ? "bg-accent" : ""
-                        }`}
-                      >
-                        <span className="flex-1 truncate text-left">
-                          {thread.title}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(thread.updated_at).toLocaleDateString()}
-                        </span>
-                      </SidebarMenuButton>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditStart(thread);
-                        }}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
+            <ThreadList
+              threads={threads}
+              activeThreadId={activeThreadId}
+              onThreadSelect={onThreadSelect}
+              onEditSave={handleEditSave}
+            />
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
