@@ -61,6 +61,37 @@ export const useThreads = (user: User | null, role: string | null) => {
     }
   };
 
+  const updateThreadTitle = async (threadId: string, newTitle: string) => {
+    if (!user) return false;
+    
+    try {
+      const { error } = await supabase
+        .from('conversation_threads')
+        .update({ title: newTitle })
+        .eq('id', threadId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      
+      setThreads(prev => 
+        prev.map(thread => 
+          thread.id === threadId 
+            ? { ...thread, title: newTitle }
+            : thread
+        )
+      );
+      return true;
+    } catch (error) {
+      console.error('Error updating thread title:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update conversation title",
+      });
+      return false;
+    }
+  };
+
   useEffect(() => {
     if (user && role) {
       fetchThreads();
@@ -70,6 +101,7 @@ export const useThreads = (user: User | null, role: string | null) => {
   return {
     threads,
     createThread,
+    updateThreadTitle,
     isLoading,
   };
 };
