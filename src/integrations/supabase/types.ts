@@ -130,6 +130,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      deduct_question: {
+        Args: {
+          user_id_param: string
+        }
+        Returns: undefined
+      }
       set_app_role: {
         Args: {
           role_value: string

@@ -33,7 +33,31 @@ export const ProfileSection = ({ userId }: { userId: string }) => {
       }
     };
 
+    // Initial fetch
     fetchCredits();
+
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'question_credits',
+          filter: `user_id=eq.${userId}`
+        },
+        (payload) => {
+          console.log('Question credits changed:', payload);
+          fetchCredits(); // Refresh the data when changes occur
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [userId]);
 
   const getTotalQuestions = () => {
