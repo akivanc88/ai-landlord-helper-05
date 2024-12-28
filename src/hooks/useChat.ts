@@ -7,7 +7,48 @@ import { User } from "@supabase/supabase-js";
 export const useChat = (user: User | null, role: UserRole | null, threadId: string | null) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasQuestions, setHasQuestions] = useState(true);
   const { toast } = useToast();
+
+  const checkQuestionCredits = async () => {
+    if (!user) return true;
+
+    try {
+      const { data, error } = await supabase
+        .from('question_credits')
+        .select('remaining_questions')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) throw error;
+      
+      const hasAvailableQuestions = (data?.remaining_questions || 0) > 0;
+      setHasQuestions(hasAvailableQuestions);
+      return hasAvailableQuestions;
+    } catch (error) {
+      console.error('Error checking question credits:', error);
+      return false;
+    }
+  };
+
+  const deductQuestion = async () => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase.rpc('deduct_question', { user_id_param: user.id });
+      
+      if (error) throw error;
+
+      await checkQuestionCredits();
+    } catch (error) {
+      console.error('Error deducting question:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to deduct question credit",
+      });
+    }
+  };
 
   const fetchMessages = async () => {
     if (!user || !role || !threadId) return;
@@ -45,6 +86,17 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
   const sendMessage = async (message: string) => {
     if (!user || !role || !threadId) return;
     
+    // Check if user has available questions
+    const canAskQuestion = await checkQuestionCredits();
+    if (!canAskQuestion) {
+      toast({
+        variant: "destructive",
+        title: "No Questions Available",
+        description: "You've used all your questions. Please purchase more to continue.",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const { error: insertError } = await supabase
@@ -58,6 +110,9 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
         });
 
       if (insertError) throw insertError;
+
+      // Deduct a question after successfully sending the message
+      await deductQuestion();
 
       const newMessage: Message = {
         text: message,
@@ -104,6 +159,7 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
   useEffect(() => {
     if (user && role && threadId) {
       fetchMessages();
+      checkQuestionCredits();
     } else {
       setMessages([]);
     }
@@ -113,5 +169,6 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
     messages,
     isLoading,
     sendMessage,
+    hasQuestions,
   };
 };

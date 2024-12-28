@@ -18,7 +18,7 @@ const Index = () => {
   const [role, setRole] = useState<UserRole | null>(null);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const { threads, createThread } = useThreads(user, role);
-  const { messages, isLoading, sendMessage } = useChat(user, role, activeThreadId);
+  const { messages, isLoading, sendMessage, hasQuestions } = useChat(user, role, activeThreadId);
   const { toast } = useToast();
 
   const handleRoleSwitch = () => {
@@ -146,7 +146,11 @@ const Index = () => {
                 </div>
 
                 <div className="mt-6">
-                  <ChatInput onSend={sendMessage} isLoading={isLoading} />
+                  <ChatInput 
+                    onSend={sendMessage} 
+                    isLoading={isLoading} 
+                    hasQuestions={hasQuestions}
+                  />
                 </div>
               </>
             )}
