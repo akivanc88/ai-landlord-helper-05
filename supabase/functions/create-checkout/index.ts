@@ -72,10 +72,14 @@ serve(async (req) => {
       metadata: {
         userId: user.id,
       },
-      subscription_data: {
-        cancel_at_period_end: true, // This will cancel the subscription at the end of the first period
-      },
     });
+
+    // After successful session creation, schedule the subscription to cancel
+    if (session.subscription) {
+      await stripe.subscriptions.update(session.subscription as string, {
+        cancel_at_period_end: true,
+      });
+    }
 
     console.log('Payment session created:', session.id);
     return new Response(
