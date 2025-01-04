@@ -5,12 +5,16 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      headers: corsHeaders,
+      status: 204,
+    });
   }
 
   const supabaseClient = createClient(
@@ -28,6 +32,8 @@ serve(async (req) => {
     if (!user?.email) {
       throw new Error('No email found');
     }
+
+    console.log('Creating checkout session for user:', user.email);
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
@@ -48,6 +54,7 @@ serve(async (req) => {
         },
       });
       customerId = customer.id;
+      console.log('Created new customer:', customerId);
     }
 
     // Create checkout session
@@ -59,7 +66,7 @@ serve(async (req) => {
           quantity: 1,
         },
       ],
-      mode: 'subscription', // Changed from 'payment' to 'subscription'
+      mode: 'subscription',
       success_url: `${req.headers.get('origin')}/?payment=success`,
       cancel_url: `${req.headers.get('origin')}/?payment=cancelled`,
       metadata: {
