@@ -2,7 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { corsHeaders } from '../_shared/cors.ts';
 
-const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
+const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
 interface ChatMessage {
   role: string;
@@ -32,23 +32,17 @@ Be supportive while maintaining professionalism, and always consider legal right
 `;
 
 const createChatCompletion = async (messages: ChatMessage[], temperature = 0.2) => {
-  const response = await fetch('https://api.perplexity.ai/chat/completions', {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
+      'Authorization': `Bearer ${OPENAI_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'llama-3.1-sonar-large-128k-online',
+      model: 'gpt-4o-mini',
       messages,
       temperature,
       max_tokens: 1000,
-      return_images: false,
-      return_related_questions: false,
-      search_domain_filter: ['perplexity.ai'],
-      search_recency_filter: 'month',
-      frequency_penalty: 1,
-      presence_penalty: 0
     }),
   });
 
