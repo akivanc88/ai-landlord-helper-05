@@ -31,25 +31,6 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
     }
   };
 
-  const deductQuestion = async () => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase.rpc('deduct_question', { user_id_param: user.id });
-      
-      if (error) throw error;
-
-      await checkQuestionCredits();
-    } catch (error) {
-      console.error('Error deducting question:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to deduct question credit",
-      });
-    }
-  };
-
   const fetchMessages = async () => {
     if (!user || !role || !threadId) return;
     
@@ -99,6 +80,7 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
 
     setIsLoading(true);
     try {
+      // Save user message
       const { error: insertError } = await supabase
         .from('messages')
         .insert({
@@ -111,9 +93,6 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
 
       if (insertError) throw insertError;
 
-      // Deduct a question after successfully sending the message
-      await deductQuestion();
-
       const newMessage: Message = {
         text: message,
         isAi: false,
@@ -121,37 +100,45 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
       };
       setMessages((prev) => [...prev, newMessage]);
 
-      // Simulate AI response
-      setTimeout(async () => {
-        const aiResponse = "This is a placeholder response. The AI integration will be implemented in the next phase.";
-        
-        const { error: aiInsertError } = await supabase
-          .from('messages')
-          .insert({
-            text: aiResponse,
-            user_id: user.id,
-            is_ai: true,
-            role: role,
-            thread_id: threadId,
-          });
+      // Get AI response
+      const { data: aiData, error: aiError } = await supabase.functions.invoke('ai-chat', {
+        body: {
+          userRole: role,
+          message,
+          userId: user.id,
+        },
+      });
 
-        if (aiInsertError) throw aiInsertError;
+      if (aiError) throw aiError;
 
-        const aiMessage: Message = {
-          text: aiResponse,
-          isAi: true,
-          timestamp: new Date().toLocaleTimeString(),
-        };
-        setMessages((prev) => [...prev, aiMessage]);
-        setIsLoading(false);
-      }, 1000);
+      // Save AI response
+      const { error: aiInsertError } = await supabase
+        .from('messages')
+        .insert({
+          text: aiData.response,
+          user_id: user.id,
+          is_ai: true,
+          role: role,
+          thread_id: threadId,
+        });
+
+      if (aiInsertError) throw aiInsertError;
+
+      const aiMessage: Message = {
+        text: aiData.response,
+        isAi: true,
+        timestamp: new Date().toLocaleTimeString(),
+      };
+      setMessages((prev) => [...prev, aiMessage]);
+
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('Error in chat interaction:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to send message",
+        description: "Failed to process message",
       });
+    } finally {
       setIsLoading(false);
     }
   };
