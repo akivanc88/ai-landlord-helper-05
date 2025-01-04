@@ -72,6 +72,9 @@ serve(async (req) => {
       metadata: {
         userId: user.id,
       },
+      subscription_data: {
+        cancel_at_period_end: true, // This will cancel the subscription at the end of the first period
+      },
     });
 
     console.log('Payment session created:', session.id);
