@@ -59,7 +59,7 @@ serve(async (req) => {
           quantity: 1,
         },
       ],
-      mode: 'payment',
+      mode: 'subscription', // Changed from 'payment' to 'subscription'
       success_url: `${req.headers.get('origin')}/?payment=success`,
       cancel_url: `${req.headers.get('origin')}/?payment=cancelled`,
       metadata: {

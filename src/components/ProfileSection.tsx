@@ -88,7 +88,10 @@ export const ProfileSection = ({ userId }: { userId: string }) => {
   const handleBuyCredits = async () => {
     setIsLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      // Get fresh session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      
       if (!session) {
         toast({
           variant: "destructive",
@@ -105,7 +108,8 @@ export const ProfileSection = ({ userId }: { userId: string }) => {
       });
 
       if (error) throw error;
-      if (data.url) {
+      
+      if (data?.url) {
         window.location.href = data.url;
       }
     } catch (error) {
