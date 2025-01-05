@@ -1,63 +1,17 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { corsHeaders } from '../_shared/cors.ts';
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-
-interface ChatMessage {
-  role: string;
-  content: string;
-}
-
-const getLandlordSystemPrompt = () => `
-You are an AI assistant specializing in helping landlords manage their properties and understand their rights and responsibilities.
-Focus on providing accurate, practical advice about:
-- Property management best practices
-- Legal obligations and rights
-- Tenant screening and management
-- Maintenance and repairs
-- Financial aspects of property rental
-Be professional, direct, and always consider legal compliance and ethical practices.
-`;
-
-const getTenantSystemPrompt = () => `
-You are an AI assistant specializing in helping tenants understand their rights and navigate rental situations.
-Focus on providing accurate, practical advice about:
-- Tenant rights and protections
-- Lease agreements and obligations
-- Maintenance requests and living conditions
-- Security deposits and rent
-- Dealing with landlords professionally
-Be supportive while maintaining professionalism, and always consider legal rights and ethical practices.
-`;
-
-const createChatCompletion = async (messages: ChatMessage[], temperature = 0.2) => {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-4-mini',
-      messages,
-      temperature,
-      max_tokens: 1000,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to get AI response');
-  }
-
-  const data = await response.json();
-  return data.choices[0].message.content;
-};
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, { 
+      headers: corsHeaders,
+      status: 200
+    });
   }
 
   try {
@@ -99,16 +53,45 @@ serve(async (req) => {
 
     // Set up the conversation with the appropriate system prompt
     const systemPrompt = userRole === 'landlord' 
-      ? getLandlordSystemPrompt() 
-      : getTenantSystemPrompt();
-
-    const messages: ChatMessage[] = [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: message }
-    ];
+      ? `You are an AI assistant specializing in helping landlords manage their properties and understand their rights and responsibilities.
+         Focus on providing accurate, practical advice about:
+         - Property management best practices
+         - Legal obligations and rights
+         - Tenant screening and management
+         - Maintenance and repairs
+         - Financial aspects of property rental
+         Be professional, direct, and always consider legal compliance and ethical practices.`
+      : `You are an AI assistant specializing in helping tenants understand their rights and navigate rental situations.
+         Focus on providing accurate, practical advice about:
+         - Tenant rights and protections
+         - Lease agreements and obligations
+         - Maintenance requests and living conditions
+         - Security deposits and rent
+         - Dealing with landlords professionally
+         Be supportive while maintaining professionalism, and always consider legal rights and ethical practices.`;
 
     // Get AI response
-    const aiResponse = await createChatCompletion(messages);
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: message }
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to get AI response');
+    }
+
+    const data = await response.json();
+    const aiResponse = data.choices[0].message.content;
 
     // Deduct a question credit
     const { error: deductError } = await supabaseClient.rpc(
@@ -135,11 +118,12 @@ serve(async (req) => {
     );
 
   } catch (error) {
+    console.error('Error in ai-chat function:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
   }
