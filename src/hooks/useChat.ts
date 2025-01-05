@@ -14,19 +14,46 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
     if (!user) return true;
 
     try {
+      console.log('Checking credits for user:', user.id);
+      
       const { data, error } = await supabase
         .from('question_credits')
-        .select('remaining_questions')
+        .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error checking credits:', error);
+        throw error;
+      }
       
-      const hasAvailableQuestions = (data?.remaining_questions || 0) > 0;
-      setHasQuestions(hasAvailableQuestions);
-      return hasAvailableQuestions;
+      console.log('Credit check result:', data);
+      
+      if (!data) {
+        console.log('No credit record found for user');
+        setHasQuestions(false);
+        return false;
+      }
+
+      const hasAvailableQuestions = (data.remaining_questions || 0) > 0;
+      const isExpired = data.expiry_date ? new Date(data.expiry_date) < new Date() : false;
+      
+      console.log('Credit status:', {
+        remaining: data.remaining_questions,
+        expired: isExpired,
+        hasAvailable: hasAvailableQuestions
+      });
+
+      const canAskQuestions = hasAvailableQuestions && !isExpired;
+      setHasQuestions(canAskQuestions);
+      return canAskQuestions;
     } catch (error) {
       console.error('Error checking question credits:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to check question credits",
+      });
       return false;
     }
   };
@@ -73,7 +100,7 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
       toast({
         variant: "destructive",
         title: "No Questions Available",
-        description: "You've used all your questions. Please purchase more credits to continue.",
+        description: "You've used all your questions or they have expired. Please purchase more credits to continue.",
       });
       setHasQuestions(false);
       return;
@@ -111,6 +138,7 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
       });
 
       if (aiError) {
+        console.error('AI chat error:', aiError);
         // Check if the error is due to no credits
         if (aiError.status === 403 && aiError.message?.includes('No questions available')) {
           setHasQuestions(false);
