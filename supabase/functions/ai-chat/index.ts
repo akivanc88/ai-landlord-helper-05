@@ -65,7 +65,13 @@ serve(async (req) => {
 
     // Validate input
     if (!userRole || !message || !userId) {
-      throw new Error('Missing required fields');
+      return new Response(
+        JSON.stringify({ error: 'Missing required fields' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     // Create Supabase client
@@ -82,7 +88,13 @@ serve(async (req) => {
       .single();
 
     if (creditsError || !credits || credits.remaining_questions <= 0) {
-      throw new Error('No questions available');
+      return new Response(
+        JSON.stringify({ error: 'No questions available' }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     // Set up the conversation with the appropriate system prompt
@@ -105,16 +117,19 @@ serve(async (req) => {
     );
 
     if (deductError) {
-      throw new Error('Failed to deduct question credit');
+      return new Response(
+        JSON.stringify({ error: 'Failed to deduct question credit' }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     return new Response(
       JSON.stringify({ response: aiResponse }),
       {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       }
     );
@@ -123,10 +138,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ error: error.message }),
       {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
       }
     );
