@@ -41,9 +41,26 @@ serve(async (req) => {
       .eq('user_id', userId)
       .single();
 
-    if (creditsError || !credits || credits.remaining_questions <= 0) {
+    console.log('Credits check result:', { credits, creditsError });
+
+    if (creditsError) {
+      console.error('Error checking credits:', creditsError);
       return new Response(
-        JSON.stringify({ error: 'No questions available' }),
+        JSON.stringify({ error: 'Failed to check question credits' }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    if (!credits || credits.remaining_questions <= 0) {
+      console.log('No questions available for user:', userId);
+      return new Response(
+        JSON.stringify({ 
+          error: 'No questions available',
+          details: 'User has no remaining question credits'
+        }),
         {
           status: 403,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -78,7 +95,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: message }
@@ -87,6 +104,7 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
+      console.error('OpenAI API error:', await response.text());
       throw new Error('Failed to get AI response');
     }
 
@@ -100,6 +118,7 @@ serve(async (req) => {
     );
 
     if (deductError) {
+      console.error('Error deducting question credit:', deductError);
       return new Response(
         JSON.stringify({ error: 'Failed to deduct question credit' }),
         {
