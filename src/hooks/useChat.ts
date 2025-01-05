@@ -73,8 +73,9 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
       toast({
         variant: "destructive",
         title: "No Questions Available",
-        description: "You've used all your questions. Please purchase more to continue.",
+        description: "You've used all your questions. Please purchase more credits to continue.",
       });
+      setHasQuestions(false);
       return;
     }
 
@@ -109,7 +110,19 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
         },
       });
 
-      if (aiError) throw aiError;
+      if (aiError) {
+        // Check if the error is due to no credits
+        if (aiError.status === 403 && aiError.message?.includes('No questions available')) {
+          setHasQuestions(false);
+          toast({
+            variant: "destructive",
+            title: "No Questions Available",
+            description: "You've used all your questions. Please purchase more credits to continue.",
+          });
+          return;
+        }
+        throw aiError;
+      }
 
       // Save AI response
       const { error: aiInsertError } = await supabase
@@ -130,6 +143,9 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
         timestamp: new Date().toLocaleTimeString(),
       };
       setMessages((prev) => [...prev, aiMessage]);
+
+      // Refresh credits after successful interaction
+      await checkQuestionCredits();
 
     } catch (error) {
       console.error('Error in chat interaction:', error);
