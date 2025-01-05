@@ -21,6 +21,7 @@ serve(async (req) => {
 
     // Validate input
     if (!userRole || !message || !userId) {
+      console.error('Missing required fields:', { userRole, message, userId });
       return new Response(
         JSON.stringify({ error: 'Missing required fields' }),
         {
@@ -46,18 +47,20 @@ serve(async (req) => {
 
     // Verify user has questions available with better error handling
     try {
+      console.log('Checking credits for user:', userId);
+      
       const { data: credits, error: creditsError } = await supabaseClient
         .from('question_credits')
         .select('remaining_questions')
         .eq('user_id', userId)
-        .single();
-
-      console.log('Credits check result:', { credits, creditsError });
+        .maybeSingle();
 
       if (creditsError) {
-        console.error('Error checking credits:', creditsError);
+        console.error('Database error when checking credits:', creditsError);
         throw new Error('Database query failed');
       }
+
+      console.log('Credits check result:', credits);
 
       if (!credits || credits.remaining_questions <= 0) {
         console.log('No questions available for user:', userId);
@@ -94,9 +97,11 @@ serve(async (req) => {
 
       // Get AI response
       if (!OPENAI_API_KEY) {
+        console.error('OpenAI API key not configured');
         throw new Error('OpenAI API key not configured');
       }
 
+      console.log('Sending request to OpenAI');
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -121,6 +126,7 @@ serve(async (req) => {
       const aiResponse = data.choices[0].message.content;
 
       // Deduct a question credit
+      console.log('Deducting question credit for user:', userId);
       const { error: deductError } = await supabaseClient.rpc(
         'deduct_question',
         { user_id_param: userId }
@@ -142,7 +148,10 @@ serve(async (req) => {
     } catch (dbError) {
       console.error('Database operation failed:', dbError);
       return new Response(
-        JSON.stringify({ error: 'Failed to check question credits', details: dbError.message }),
+        JSON.stringify({ 
+          error: 'Failed to check question credits', 
+          details: dbError.message 
+        }),
         {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -153,7 +162,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in ai-chat function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: 'An unexpected error occurred'
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
