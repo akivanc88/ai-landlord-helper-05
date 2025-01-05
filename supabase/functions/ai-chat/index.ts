@@ -51,7 +51,7 @@ serve(async (req) => {
       
       const { data: credits, error: creditsError } = await supabaseClient
         .from('question_credits')
-        .select('remaining_questions')
+        .select('*')
         .eq('user_id', userId)
         .maybeSingle();
 
@@ -62,12 +62,35 @@ serve(async (req) => {
 
       console.log('Credits check result:', credits);
 
-      if (!credits || credits.remaining_questions <= 0) {
-        console.log('No questions available for user:', userId);
+      if (!credits) {
+        console.log('No credits record found for user:', userId);
         return new Response(
           JSON.stringify({ 
             error: 'No questions available',
-            details: 'User has no remaining question credits'
+            details: 'No credit record found'
+          }),
+          {
+            status: 403,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      const hasAvailableQuestions = credits.remaining_questions > 0;
+      const isExpired = credits.expiry_date ? new Date(credits.expiry_date) < new Date() : false;
+
+      console.log('Credit status:', {
+        userId,
+        remaining: credits.remaining_questions,
+        expired: isExpired,
+        hasAvailable: hasAvailableQuestions
+      });
+
+      if (!hasAvailableQuestions || isExpired) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'No questions available',
+            details: isExpired ? 'Credits have expired' : 'No remaining credits'
           }),
           {
             status: 403,
