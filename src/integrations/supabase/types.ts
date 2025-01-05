@@ -36,6 +36,72 @@ export type Database = {
         }
         Relationships: []
       }
+      knowledge_pdfs: {
+        Row: {
+          chunks: Json[] | null
+          content: string | null
+          created_at: string
+          file_path: string
+          filename: string
+          id: string
+          is_active: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          chunks?: Json[] | null
+          content?: string | null
+          created_at?: string
+          file_path: string
+          filename: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          chunks?: Json[] | null
+          content?: string | null
+          created_at?: string
+          file_path?: string
+          filename?: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      knowledge_urls: {
+        Row: {
+          chunks: Json[] | null
+          content: string | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          title: string | null
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          chunks?: Json[] | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          title?: string | null
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          chunks?: Json[] | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          title?: string | null
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           created_at: string | null

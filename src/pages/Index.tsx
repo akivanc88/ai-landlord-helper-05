@@ -20,6 +20,7 @@ const Index = () => {
   const { threads, createThread } = useThreads(user, role);
   const { messages, isLoading, sendMessage, hasQuestions } = useChat(user, role, activeThreadId);
   const { toast } = useToast();
+  const isAdmin = user?.email === "admin@example.com"; // Replace with your admin check logic
 
   const handleRoleSwitch = () => {
     setRole(role === "landlord" ? "tenant" : "landlord");
@@ -90,6 +91,9 @@ const Index = () => {
                 BC Housing Legal Assistant
               </h1>
               <div className="flex items-center gap-4">
+                {isAdmin && (
+                  <AdminKnowledgeBase />
+                )}
                 <Button
                   variant="secondary"
                   size="sm"
