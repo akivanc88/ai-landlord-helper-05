@@ -5,7 +5,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -31,8 +31,8 @@ serve(async (req) => {
       );
     }
 
-    // Create Supabase client with error handling
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    // Create Supabase client with service role key for admin access
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       console.error('Missing Supabase configuration');
       return new Response(
         JSON.stringify({ error: 'Server configuration error' }),
@@ -43,13 +43,13 @@ serve(async (req) => {
       );
     }
 
-    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Verify user has questions available with better error handling
     try {
       console.log('Checking credits for user:', userId);
       
-      const { data: credits, error: creditsError } = await supabaseClient
+      const { data: credits, error: creditsError } = await supabaseAdmin
         .from('question_credits')
         .select('*')
         .eq('user_id', userId)
@@ -148,9 +148,9 @@ serve(async (req) => {
       const data = await response.json();
       const aiResponse = data.choices[0].message.content;
 
-      // Deduct a question credit
+      // Deduct a question credit using admin client
       console.log('Deducting question credit for user:', userId);
-      const { error: deductError } = await supabaseClient.rpc(
+      const { error: deductError } = await supabaseAdmin.rpc(
         'deduct_question',
         { user_id_param: userId }
       );
