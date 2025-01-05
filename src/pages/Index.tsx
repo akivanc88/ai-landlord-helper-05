@@ -12,6 +12,7 @@ import { ProfileSection } from "@/components/ProfileSection";
 import { ThreadsSidebar } from "@/components/ThreadsSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { useToast } from "@/components/ui/use-toast";
+import { AdminKnowledgeBase } from "@/components/AdminKnowledgeBase";
 
 const Index = () => {
   const { user, signOut } = useAuth();
