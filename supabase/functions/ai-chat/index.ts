@@ -39,7 +39,7 @@ const createChatCompletion = async (messages: ChatMessage[], temperature = 0.2) 
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4-mini',
       messages,
       temperature,
       max_tokens: 1000,
@@ -55,6 +55,7 @@ const createChatCompletion = async (messages: ChatMessage[], temperature = 0.2) 
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
