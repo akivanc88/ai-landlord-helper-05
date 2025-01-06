@@ -1,12 +1,23 @@
 import { cn } from "@/lib/utils";
+import ReactMarkdown from 'react-markdown';
+import { Button } from "./ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
+
+interface Citation {
+  id: number;
+  sourceId: string;
+  sourceType: string;
+  sourceName: string;
+}
 
 interface ChatMessageProps {
   text: string;
   isAi: boolean;
   timestamp: string;
+  citations?: Citation[];
 }
 
-export const ChatMessage = ({ text, isAi, timestamp }: ChatMessageProps) => {
+export const ChatMessage = ({ text, isAi, timestamp, citations }: ChatMessageProps) => {
   return (
     <div
       className={cn(
@@ -23,8 +34,35 @@ export const ChatMessage = ({ text, isAi, timestamp }: ChatMessageProps) => {
         {isAi ? "AI" : "You"}
       </div>
       <div className="flex-1">
-        <p className="text-[#313132] text-base leading-relaxed">{text}</p>
-        <span className="mt-2 text-sm text-[#606060]">{timestamp}</span>
+        <div className="prose max-w-none">
+          <ReactMarkdown>{text}</ReactMarkdown>
+        </div>
+        {citations && citations.length > 0 && (
+          <div className="mt-4">
+            <h4 className="text-sm font-semibold text-gray-600 mb-2">Sources:</h4>
+            <div className="flex flex-wrap gap-2">
+              {citations.map((citation) => (
+                <TooltipProvider key={citation.id}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                      >
+                        [{citation.id}] {citation.sourceName}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Source Type: {citation.sourceType}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ))}
+            </div>
+          </div>
+        )}
+        <span className="mt-2 block text-sm text-[#606060]">{timestamp}</span>
       </div>
     </div>
   );

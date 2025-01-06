@@ -4,8 +4,15 @@ import { useToast } from "@/components/ui/use-toast";
 import { Message, UserRole } from "@/types/chat";
 import { User } from "@supabase/supabase-js";
 
+interface Citation {
+  id: number;
+  sourceId: string;
+  sourceType: string;
+  sourceName: string;
+}
+
 export const useChat = (user: User | null, role: UserRole | null, threadId: string | null) => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<(Message & { citations?: Citation[] })[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasQuestions, setHasQuestions] = useState(true);
   const { toast } = useToast();
@@ -79,6 +86,7 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
           text: msg.text,
           isAi: msg.is_ai,
           timestamp: new Date(msg.timestamp).toLocaleTimeString(),
+          citations: msg.citations,
         }))
       );
     } catch (error) {
@@ -94,7 +102,6 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
   const sendMessage = async (message: string) => {
     if (!user || !role || !threadId) return;
     
-    // Check if user has available questions
     const canAskQuestion = await checkQuestionCredits();
     if (!canAskQuestion) {
       toast({
@@ -121,7 +128,7 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
 
       if (insertError) throw insertError;
 
-      const newMessage: Message = {
+      const newMessage = {
         text: message,
         isAi: false,
         timestamp: new Date().toLocaleTimeString(),
@@ -139,7 +146,6 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
 
       if (aiError) {
         console.error('AI chat error:', aiError);
-        // Check if the error is due to no credits
         if (aiError.status === 403 && aiError.message?.includes('No questions available')) {
           setHasQuestions(false);
           toast({
@@ -152,7 +158,7 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
         throw aiError;
       }
 
-      // Save AI response
+      // Save AI response with citations
       const { error: aiInsertError } = await supabase
         .from('messages')
         .insert({
@@ -161,18 +167,19 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
           is_ai: true,
           role: role,
           thread_id: threadId,
+          citations: aiData.citations,
         });
 
       if (aiInsertError) throw aiInsertError;
 
-      const aiMessage: Message = {
+      const aiMessage = {
         text: aiData.response,
         isAi: true,
         timestamp: new Date().toLocaleTimeString(),
+        citations: aiData.citations,
       };
       setMessages((prev) => [...prev, aiMessage]);
 
-      // Refresh credits after successful interaction
       await checkQuestionCredits();
 
     } catch (error) {

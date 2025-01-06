@@ -75,13 +75,12 @@ export const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-export async function findRelevantContext(supabase: any, message: string): Promise<string> {
+export async function findRelevantContext(supabase: any, message: string): Promise<{ context: string; citations: any[] }> {
   try {
     console.log('Fetching knowledge sources...');
-    // Fetch all knowledge sources
     const [urlsResponse, pdfsResponse] = await Promise.all([
-      supabase.from('knowledge_urls').select('chunks').eq('is_active', true),
-      supabase.from('knowledge_pdfs').select('chunks').eq('is_active', true)
+      supabase.from('knowledge_urls').select('*').eq('is_active', true),
+      supabase.from('knowledge_pdfs').select('*').eq('is_active', true)
     ]);
 
     if (urlsResponse.error) {
@@ -94,23 +93,39 @@ export async function findRelevantContext(supabase: any, message: string): Promi
       throw pdfsResponse.error;
     }
 
-    const allChunks = [
-      ...(urlsResponse.data || []).flatMap(url => url.chunks || []),
-      ...(pdfsResponse.data || []).flatMap(pdf => pdf.chunks || [])
+    const allSources = [
+      ...urlsResponse.data.map(url => ({
+        ...url,
+        type: 'url',
+        displayName: url.title || url.url
+      })),
+      ...pdfsResponse.data.map(pdf => ({
+        ...pdf,
+        type: 'pdf',
+        displayName: pdf.filename
+      }))
     ];
 
-    console.log(`Found ${allChunks.length} total chunks from knowledge base`);
+    const allChunksWithMetadata = allSources.flatMap(source => 
+      (source.chunks || []).map(chunk => ({
+        ...chunk,
+        sourceId: source.id,
+        sourceType: source.type,
+        sourceName: source.displayName
+      }))
+    );
 
-    if (allChunks.length === 0) {
+    console.log(`Found ${allChunksWithMetadata.length} total chunks from knowledge base`);
+
+    if (allChunksWithMetadata.length === 0) {
       console.log('No chunks found in knowledge base');
-      return '';
+      return { context: '', citations: [] };
     }
 
-    // Simple relevance scoring based on word overlap
     const messageWords = new Set(message.toLowerCase().split(' '));
-    const relevantChunks = allChunks
+    const relevantChunks = allChunksWithMetadata
       .map(chunk => ({
-        text: chunk.text,
+        ...chunk,
         score: Array.from(messageWords).filter(word => 
           chunk.text.toLowerCase().includes(word)
         ).length
@@ -121,9 +136,20 @@ export async function findRelevantContext(supabase: any, message: string): Promi
 
     console.log(`Found ${relevantChunks.length} relevant chunks`);
 
-    return relevantChunks.map(chunk => chunk.text).join('\n\n');
+    const citations = relevantChunks.map((chunk, index) => ({
+      id: index + 1,
+      sourceId: chunk.sourceId,
+      sourceType: chunk.sourceType,
+      sourceName: chunk.sourceName
+    }));
+
+    const contextWithCitations = relevantChunks
+      .map((chunk, index) => `[${index + 1}] ${chunk.text}`)
+      .join('\n\n');
+
+    return { context: contextWithCitations, citations };
   } catch (error) {
     console.error('Error finding relevant context:', error);
-    return '';
+    return { context: '', citations: [] };
   }
 }

@@ -42,13 +42,13 @@ serve(async (req) => {
 
     // Find relevant context from knowledge base
     console.log('Searching for relevant context...');
-    const relevantContext = await findRelevantContext(supabase, message);
+    const { context: relevantContext, citations } = await findRelevantContext(supabase, message);
     console.log('Found relevant context:', relevantContext ? 'Yes' : 'No');
 
     // Prepare system prompt with context
     const basePrompt = userRole === 'landlord' ? LANDLORD_PROMPT : TENANT_PROMPT;
     const systemPrompt = relevantContext 
-      ? `${basePrompt}\n\nRelevant context from BC housing resources:\n${relevantContext}\n\nUse the above context to inform your response when relevant. If the context doesn't address the specific question, rely on your general knowledge of BC housing laws.`
+      ? `${basePrompt}\n\nRelevant context from BC housing resources:\n${relevantContext}\n\nUse the above context to inform your response when relevant. If the context doesn't address the specific question, rely on your general knowledge of BC housing laws. When citing information from the context, use the citation numbers [1], [2], etc. in your response.`
       : basePrompt;
 
     console.log('Sending request to OpenAI...');
@@ -86,7 +86,10 @@ serve(async (req) => {
     if (deductError) throw deductError;
 
     return new Response(
-      JSON.stringify({ response: aiResponse }),
+      JSON.stringify({ 
+        response: aiResponse,
+        citations: citations
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
