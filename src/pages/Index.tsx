@@ -27,23 +27,32 @@ const Index = () => {
   useEffect(() => {
     const checkAdminStatus = async () => {
       if (user) {
-        const { data, error } = await supabase
-          .from('admin_users')
-          .select('user_id')
-          .eq('user_id', user.id)
-          .single();
-        
-        if (error) {
+        try {
+          const { data, error } = await supabase
+            .from('admin_users')
+            .select('user_id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          
+          if (error) {
+            console.error('Error checking admin status:', error);
+            return;
+          }
+          
+          setIsAdmin(!!data);
+        } catch (error) {
           console.error('Error checking admin status:', error);
-          return;
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to check admin status",
+          });
         }
-        
-        setIsAdmin(!!data);
       }
     };
 
     checkAdminStatus();
-  }, [user]);
+  }, [user, toast]);
 
   const handleRoleSwitch = () => {
     setRole(role === "landlord" ? "tenant" : "landlord");
