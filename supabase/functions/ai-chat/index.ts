@@ -10,6 +10,7 @@ serve(async (req) => {
 
   try {
     const { userRole, message, userId } = await req.json();
+    console.log('Processing request for user:', userId, 'with role:', userRole);
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -40,14 +41,17 @@ serve(async (req) => {
     }
 
     // Find relevant context from knowledge base
+    console.log('Searching for relevant context...');
     const relevantContext = await findRelevantContext(supabase, message);
+    console.log('Found relevant context:', relevantContext ? 'Yes' : 'No');
 
     // Prepare system prompt with context
     const basePrompt = userRole === 'landlord' ? LANDLORD_PROMPT : TENANT_PROMPT;
     const systemPrompt = relevantContext 
-      ? `${basePrompt}\n\nRelevant context from BC housing resources:\n${relevantContext}`
+      ? `${basePrompt}\n\nRelevant context from BC housing resources:\n${relevantContext}\n\nUse the above context to inform your response when relevant. If the context doesn't address the specific question, rely on your general knowledge of BC housing laws.`
       : basePrompt;
 
+    console.log('Sending request to OpenAI...');
     // Get AI response
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -65,11 +69,13 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
+      console.error('OpenAI API error:', await response.text());
       throw new Error('Failed to get AI response');
     }
 
     const data = await response.json();
     const aiResponse = data.choices[0].message.content;
+    console.log('Received response from OpenAI');
 
     // Deduct question credit
     const { error: deductError } = await supabase.rpc(

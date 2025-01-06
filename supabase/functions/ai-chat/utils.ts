@@ -77,16 +77,34 @@ export const corsHeaders = {
 
 export async function findRelevantContext(supabase: any, message: string): Promise<string> {
   try {
+    console.log('Fetching knowledge sources...');
     // Fetch all knowledge sources
     const [urlsResponse, pdfsResponse] = await Promise.all([
       supabase.from('knowledge_urls').select('chunks').eq('is_active', true),
       supabase.from('knowledge_pdfs').select('chunks').eq('is_active', true)
     ]);
 
+    if (urlsResponse.error) {
+      console.error('Error fetching URLs:', urlsResponse.error);
+      throw urlsResponse.error;
+    }
+
+    if (pdfsResponse.error) {
+      console.error('Error fetching PDFs:', pdfsResponse.error);
+      throw pdfsResponse.error;
+    }
+
     const allChunks = [
       ...(urlsResponse.data || []).flatMap(url => url.chunks || []),
       ...(pdfsResponse.data || []).flatMap(pdf => pdf.chunks || [])
     ];
+
+    console.log(`Found ${allChunks.length} total chunks from knowledge base`);
+
+    if (allChunks.length === 0) {
+      console.log('No chunks found in knowledge base');
+      return '';
+    }
 
     // Simple relevance scoring based on word overlap
     const messageWords = new Set(message.toLowerCase().split(' '));
@@ -100,6 +118,8 @@ export async function findRelevantContext(supabase: any, message: string): Promi
       .filter(chunk => chunk.score > 0)
       .sort((a, b) => b.score - a.score)
       .slice(0, 3);
+
+    console.log(`Found ${relevantChunks.length} relevant chunks`);
 
     return relevantChunks.map(chunk => chunk.text).join('\n\n');
   } catch (error) {
