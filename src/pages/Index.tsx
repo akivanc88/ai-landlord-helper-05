@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChatInput } from "@/components/ChatInput";
 import { ChatMessage } from "@/components/ChatMessage";
 import { RoleSelection } from "@/components/RoleSelection";
@@ -13,15 +13,37 @@ import { ThreadsSidebar } from "@/components/ThreadsSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { useToast } from "@/components/ui/use-toast";
 import { AdminKnowledgeBase } from "@/components/AdminKnowledgeBase";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const { user, signOut } = useAuth();
   const [role, setRole] = useState<UserRole | null>(null);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const { threads, createThread } = useThreads(user, role);
   const { messages, isLoading, sendMessage, hasQuestions } = useChat(user, role, activeThreadId);
   const { toast } = useToast();
-  const isAdmin = user?.email === "admin@example.com"; // Replace with your admin check logic
+
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (user) {
+        const { data, error } = await supabase
+          .from('admin_users')
+          .select('user_id')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (error) {
+          console.error('Error checking admin status:', error);
+          return;
+        }
+        
+        setIsAdmin(!!data);
+      }
+    };
+
+    checkAdminStatus();
+  }, [user]);
 
   const handleRoleSwitch = () => {
     setRole(role === "landlord" ? "tenant" : "landlord");
