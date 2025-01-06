@@ -3,101 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { Message, UserRole } from "@/types/chat";
 import { User } from "@supabase/supabase-js";
-
-interface Citation {
-  id: number;
-  sourceId: string;
-  sourceType: string;
-  sourceName: string;
-}
+import { useQuestionCredits } from "./useQuestionCredits";
+import { useMessageManagement } from "./useMessageManagement";
 
 export const useChat = (user: User | null, role: UserRole | null, threadId: string | null) => {
-  const [messages, setMessages] = useState<(Message & { citations?: Citation[] })[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [hasQuestions, setHasQuestions] = useState(true);
+  const { hasQuestions, checkQuestionCredits, setHasQuestions } = useQuestionCredits(user);
+  const { fetchMessages, saveUserMessage, saveAIMessage } = useMessageManagement(user, role, threadId);
   const { toast } = useToast();
-
-  const checkQuestionCredits = async () => {
-    if (!user) return true;
-
-    try {
-      console.log('Checking credits for user:', user.id);
-      
-      const { data, error } = await supabase
-        .from('question_credits')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error checking credits:', error);
-        throw error;
-      }
-      
-      console.log('Credit check result:', data);
-      
-      if (!data) {
-        console.log('No credit record found for user');
-        setHasQuestions(false);
-        return false;
-      }
-
-      const hasAvailableQuestions = (data.remaining_questions || 0) > 0;
-      const isExpired = data.expiry_date ? new Date(data.expiry_date) < new Date() : false;
-      
-      console.log('Credit status:', {
-        remaining: data.remaining_questions,
-        expired: isExpired,
-        hasAvailable: hasAvailableQuestions
-      });
-
-      const canAskQuestions = hasAvailableQuestions && !isExpired;
-      setHasQuestions(canAskQuestions);
-      return canAskQuestions;
-    } catch (error) {
-      console.error('Error checking question credits:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to check question credits",
-      });
-      return false;
-    }
-  };
-
-  const fetchMessages = async () => {
-    if (!user || !role || !threadId) return;
-    
-    try {
-      await supabase.rpc('set_app_role', { role_value: role });
-      
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('role', role)
-        .eq('thread_id', threadId)
-        .order('timestamp', { ascending: true });
-
-      if (error) throw error;
-
-      setMessages(
-        data.map((msg) => ({
-          text: msg.text,
-          isAi: msg.is_ai,
-          timestamp: new Date(msg.timestamp).toLocaleTimeString(),
-          citations: msg.citations,
-        }))
-      );
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load messages",
-      });
-    }
-  };
 
   const sendMessage = async (message: string) => {
     if (!user || !role || !threadId) return;
@@ -115,18 +29,7 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
 
     setIsLoading(true);
     try {
-      // Save user message
-      const { error: insertError } = await supabase
-        .from('messages')
-        .insert({
-          text: message,
-          user_id: user.id,
-          is_ai: false,
-          role: role,
-          thread_id: threadId,
-        });
-
-      if (insertError) throw insertError;
+      await saveUserMessage(message);
 
       const newMessage = {
         text: message,
@@ -135,7 +38,6 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
       };
       setMessages((prev) => [...prev, newMessage]);
 
-      // Get AI response
       const { data: aiData, error: aiError } = await supabase.functions.invoke('ai-chat', {
         body: {
           userRole: role,
@@ -158,19 +60,7 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
         throw aiError;
       }
 
-      // Save AI response with citations
-      const { error: aiInsertError } = await supabase
-        .from('messages')
-        .insert({
-          text: aiData.response,
-          user_id: user.id,
-          is_ai: true,
-          role: role,
-          thread_id: threadId,
-          citations: aiData.citations,
-        });
-
-      if (aiInsertError) throw aiInsertError;
+      await saveAIMessage(aiData.response, aiData.citations);
 
       const aiMessage = {
         text: aiData.response,
@@ -196,7 +86,7 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
 
   useEffect(() => {
     if (user && role && threadId) {
-      fetchMessages();
+      fetchMessages().then(setMessages);
       checkQuestionCredits();
     } else {
       setMessages([]);
