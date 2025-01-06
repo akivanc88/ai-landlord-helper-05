@@ -49,22 +49,27 @@ serve(async (req) => {
       throw new Error('Missing required parameters');
     }
 
+    // Clean and sanitize the content
+    const cleanContent = content.replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F\uFFFD\uFFFE\uFFFF]/g, '');
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
     // Process the content into chunks
-    const chunks = chunkText(content);
+    const chunks = chunkText(cleanContent);
     
     // Determine which table to update based on content type
     const table = type === 'url' ? 'knowledge_urls' : 'knowledge_pdfs';
     
+    console.log('Updating table:', table, 'with ID:', id);
+
     // Update the database with processed content
     const { error: updateError } = await supabase
       .from(table)
       .update({
-        content,
+        content: cleanContent,
         chunks,
         updated_at: new Date().toISOString(),
       })

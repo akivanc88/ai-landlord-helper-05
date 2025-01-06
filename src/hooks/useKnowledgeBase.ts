@@ -74,7 +74,12 @@ export const useKnowledgeBase = () => {
       if (dbError) throw dbError;
 
       // Read the file content
-      const fileContent = await file.text();
+      const fileReader = new FileReader();
+      const fileContent = await new Promise<string>((resolve, reject) => {
+        fileReader.onload = () => resolve(fileReader.result as string);
+        fileReader.onerror = () => reject(fileReader.error);
+        fileReader.readAsText(file);
+      });
       
       // Process the PDF using the Edge Function
       const { error: processError } = await supabase.functions.invoke('process-document', {
