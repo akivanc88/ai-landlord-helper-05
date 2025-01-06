@@ -51,8 +51,10 @@ export const useKnowledgeBase = () => {
   const uploadPdf = async (file: File) => {
     setIsLoading(true);
     try {
-      // Upload file to storage
+      // Generate a unique filename
       const filePath = `${crypto.randomUUID()}.pdf`;
+      
+      // Upload file to storage
       const { error: uploadError } = await supabase.storage
         .from('knowledge_pdfs')
         .upload(filePath, file);
@@ -71,12 +73,16 @@ export const useKnowledgeBase = () => {
 
       if (dbError) throw dbError;
 
-      // Process the PDF using the Edge Function
-      const formData = new FormData();
-      formData.append('file', file);
+      // Read the file content
+      const fileContent = await file.text();
       
+      // Process the PDF using the Edge Function
       const { error: processError } = await supabase.functions.invoke('process-document', {
-        body: { type: 'pdf', content: await file.text(), id: data.id },
+        body: { 
+          type: 'pdf', 
+          content: fileContent, 
+          id: data.id 
+        },
       });
 
       if (processError) throw processError;

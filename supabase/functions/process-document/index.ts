@@ -37,12 +37,17 @@ function chunkText(text: string, maxChunkSize = 1000): { text: string, metadata:
 }
 
 serve(async (req) => {
+  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { type, content, id } = await req.json();
+    
+    if (!type || !content || !id) {
+      throw new Error('Missing required parameters');
+    }
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -51,33 +56,50 @@ serve(async (req) => {
 
     // Process the content into chunks
     const chunks = chunkText(content);
-
-    // Update the appropriate table based on content type
+    
+    // Determine which table to update based on content type
     const table = type === 'url' ? 'knowledge_urls' : 'knowledge_pdfs';
-    const { error } = await supabase
+    
+    // Update the database with processed content
+    const { error: updateError } = await supabase
       .from(table)
       .update({
-        content: content,
-        chunks: chunks,
-        updated_at: new Date().toISOString()
+        content,
+        chunks,
+        updated_at: new Date().toISOString(),
       })
       .eq('id', id);
 
-    if (error) {
-      throw error;
+    if (updateError) {
+      console.error('Database update error:', updateError);
+      throw updateError;
     }
 
     return new Response(
       JSON.stringify({ success: true }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        },
+        status: 200
+      }
     );
+
   } catch (error) {
     console.error('Error processing document:', error);
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: 'Error processing document', 
+        details: error.message 
+      }),
       { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        },
+        status: 400
       }
     );
   }
