@@ -149,7 +149,7 @@ const Index = () => {
             </div>
           </header>
 
-          <div className="container mx-auto max-w-6xl py-6 px-4 flex-1 flex flex-col">
+          <div className="container mx-auto max-w-6xl py-6 px-4 flex-1 flex flex-col overflow-hidden">
             <div className="mb-6">
               <ProfileSection userId={user.id} />
             </div>
@@ -165,7 +165,7 @@ const Index = () => {
               </div>
             ) : (
               <>
-                <div className="flex-1 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto min-h-0">
                   {messages.length === 0 ? (
                     <div className="flex h-full items-center justify-center">
                       <p className="text-center text-[#606060]">
