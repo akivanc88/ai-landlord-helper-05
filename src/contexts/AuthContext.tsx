@@ -50,38 +50,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     try {
-      // First check if we have a session
-      const { data: { session } } = await supabase.auth.getSession();
+      // First clear the local state
+      setUser(null);
       
-      if (!session) {
-        // If no session, just clear the local state
-        setUser(null);
-        return;
+      // Attempt to sign out from all devices
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
+      
+      if (error) {
+        // If there's an error (like session not found), we'll just log it
+        // but we won't show it to the user since we've already cleared their local state
+        console.error("Sign out error:", error);
       }
 
-      // Proceed with sign out
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error("Sign out error:", error);
-        toast({
-          variant: "destructive",
-          title: "Error signing out",
-          description: error.message,
-        });
-      } else {
-        // Clear local state
-        setUser(null);
-        toast({
-          title: "Signed out successfully",
-          description: "You have been signed out of your account.",
-        });
-      }
+      // Always show success message since we've cleared their local state
+      toast({
+        title: "Signed out successfully",
+        description: "You have been signed out of your account.",
+      });
+
     } catch (error) {
       console.error("Error during sign out:", error);
+      // Even if there's an error, we've already cleared the local state
       toast({
-        variant: "destructive",
-        title: "Error",
-        description: "An unexpected error occurred while signing out",
+        title: "Signed out",
+        description: "You have been signed out locally.",
       });
     }
   };
