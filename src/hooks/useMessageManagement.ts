@@ -1,5 +1,5 @@
 import { User } from "@supabase/supabase-js";
-import { UserRole, Message } from "@/types/chat";
+import { UserRole, Message, Citation } from "@/types/chat";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -26,7 +26,7 @@ export const useMessageManagement = (user: User | null, role: UserRole | null, t
         text: msg.text,
         isAi: msg.is_ai,
         timestamp: new Date(msg.timestamp).toLocaleTimeString(),
-        citations: msg.citations,
+        citations: msg.citations as Citation[] || undefined,
       }));
     } catch (error) {
       console.error('Error fetching messages:', error);
@@ -55,7 +55,7 @@ export const useMessageManagement = (user: User | null, role: UserRole | null, t
     if (error) throw error;
   };
 
-  const saveAIMessage = async (response: string, citations: any[]) => {
+  const saveAIMessage = async (response: string, citations: Citation[]) => {
     if (!user || !role || !threadId) return;
 
     const { error } = await supabase

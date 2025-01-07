@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { Message, UserRole } from "@/types/chat";
+import { Message, UserRole, Citation } from "@/types/chat";
 import { User } from "@supabase/supabase-js";
 import { useQuestionCredits } from "./useQuestionCredits";
 import { useMessageManagement } from "./useMessageManagement";
@@ -31,7 +31,7 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
     try {
       await saveUserMessage(message);
 
-      const newMessage = {
+      const newMessage: Message = {
         text: message,
         isAi: false,
         timestamp: new Date().toLocaleTimeString(),
@@ -62,7 +62,7 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
 
       await saveAIMessage(aiData.response, aiData.citations);
 
-      const aiMessage = {
+      const aiMessage: Message = {
         text: aiData.response,
         isAi: true,
         timestamp: new Date().toLocaleTimeString(),
