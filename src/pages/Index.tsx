@@ -109,14 +109,14 @@ const Index = () => {
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen w-full">
+      <div className="flex h-screen w-full overflow-hidden">
         <ThreadsSidebar
           threads={threads}
           activeThreadId={activeThreadId}
           onThreadSelect={setActiveThreadId}
           onNewThread={handleNewThread}
         />
-        <div className="flex-1 flex flex-col bg-[#f2f2f2] overflow-hidden">
+        <div className="flex flex-1 flex-col overflow-hidden bg-[#f2f2f2]">
           <header className="border-b bg-primary py-4">
             <div className="container mx-auto flex items-center justify-between">
               <h1 className="text-xl font-semibold text-white">
@@ -149,47 +149,49 @@ const Index = () => {
             </div>
           </header>
 
-          <div className="container mx-auto max-w-6xl py-6 px-4 flex-1 flex flex-col overflow-hidden">
-            <div className="mb-6">
-              <ProfileSection userId={user.id} />
-            </div>
-
-            {!activeThreadId ? (
-              <div className="flex-1 flex items-center justify-center">
-                <div className="text-center">
-                  <p className="text-[#606060] mb-4">
-                    Select a conversation or start a new one
-                  </p>
-                  <Button onClick={handleNewThread}>Start New Conversation</Button>
-                </div>
+          <div className="flex flex-1 flex-col overflow-hidden">
+            <div className="container mx-auto flex max-w-6xl flex-1 flex-col overflow-hidden px-4 py-6">
+              <div className="mb-6 flex-shrink-0">
+                <ProfileSection userId={user.id} />
               </div>
-            ) : (
-              <>
-                <div className="flex-1 overflow-y-auto min-h-0">
-                  {messages.length === 0 ? (
-                    <div className="flex h-full items-center justify-center">
-                      <p className="text-center text-[#606060]">
-                        Start by asking a question about BC housing laws and regulations
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-[#e3e3e3]">
-                      {messages.map((msg, index) => (
-                        <ChatMessage key={index} {...msg} />
-                      ))}
-                    </div>
-                  )}
-                </div>
 
-                <div className="mt-6">
-                  <ChatInput 
-                    onSend={sendMessage} 
-                    isLoading={isLoading} 
-                    hasQuestions={hasQuestions}
-                  />
+              {!activeThreadId ? (
+                <div className="flex flex-1 items-center justify-center">
+                  <div className="text-center">
+                    <p className="text-[#606060] mb-4">
+                      Select a conversation or start a new one
+                    </p>
+                    <Button onClick={handleNewThread}>Start New Conversation</Button>
+                  </div>
                 </div>
-              </>
-            )}
+              ) : (
+                <div className="flex flex-1 flex-col overflow-hidden">
+                  <div className="flex-1 overflow-y-auto">
+                    {messages.length === 0 ? (
+                      <div className="flex h-full items-center justify-center">
+                        <p className="text-center text-[#606060]">
+                          Start by asking a question about BC housing laws and regulations
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-[#e3e3e3] space-y-4">
+                        {messages.map((msg, index) => (
+                          <ChatMessage key={index} {...msg} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-6 flex-shrink-0">
+                    <ChatInput 
+                      onSend={sendMessage} 
+                      isLoading={isLoading} 
+                      hasQuestions={hasQuestions}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
