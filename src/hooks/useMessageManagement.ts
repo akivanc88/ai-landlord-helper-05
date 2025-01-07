@@ -1,10 +1,23 @@
 import { User } from "@supabase/supabase-js";
 import { UserRole, Message, Citation } from "@/types/chat";
+import { Json } from "@/types/database";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
 export const useMessageManagement = (user: User | null, role: UserRole | null, threadId: string | null) => {
   const { toast } = useToast();
+
+  const convertJsonToCitation = (json: Json): Citation => {
+    if (typeof json !== 'object' || !json) {
+      throw new Error('Invalid citation data');
+    }
+    return {
+      id: Number(json.id),
+      sourceId: String(json.sourceId),
+      sourceType: String(json.sourceType),
+      sourceName: String(json.sourceName),
+    };
+  };
 
   const fetchMessages = async () => {
     if (!user || !role || !threadId) return [];
@@ -26,7 +39,7 @@ export const useMessageManagement = (user: User | null, role: UserRole | null, t
         text: msg.text,
         isAi: msg.is_ai,
         timestamp: new Date(msg.timestamp).toLocaleTimeString(),
-        citations: msg.citations as Citation[] || undefined,
+        citations: msg.citations ? (msg.citations as Json[]).map(convertJsonToCitation) : undefined,
       }));
     } catch (error) {
       console.error('Error fetching messages:', error);
@@ -58,6 +71,13 @@ export const useMessageManagement = (user: User | null, role: UserRole | null, t
   const saveAIMessage = async (response: string, citations: Citation[]) => {
     if (!user || !role || !threadId) return;
 
+    const citationsJson: Json[] = citations.map(citation => ({
+      id: citation.id,
+      sourceId: citation.sourceId,
+      sourceType: citation.sourceType,
+      sourceName: citation.sourceName,
+    }));
+
     const { error } = await supabase
       .from('messages')
       .insert({
@@ -66,7 +86,7 @@ export const useMessageManagement = (user: User | null, role: UserRole | null, t
         is_ai: true,
         role: role,
         thread_id: threadId,
-        citations: citations,
+        citations: citationsJson,
       });
 
     if (error) throw error;
