@@ -50,12 +50,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     try {
+      // First check if we have a session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        // If no session, just clear the local state
+        setUser(null);
+        return;
+      }
+
+      // Proceed with sign out
       const { error } = await supabase.auth.signOut();
       if (error) {
+        console.error("Sign out error:", error);
         toast({
           variant: "destructive",
           title: "Error signing out",
           description: error.message,
+        });
+      } else {
+        // Clear local state
+        setUser(null);
+        toast({
+          title: "Signed out successfully",
+          description: "You have been signed out of your account.",
         });
       }
     } catch (error) {
