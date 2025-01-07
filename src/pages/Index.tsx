@@ -116,7 +116,7 @@ const Index = () => {
           onThreadSelect={setActiveThreadId}
           onNewThread={handleNewThread}
         />
-        <div className="flex-1 flex flex-col bg-[#f2f2f2]">
+        <div className="flex-1 flex flex-col bg-[#f2f2f2] overflow-hidden">
           <header className="border-b bg-primary py-4">
             <div className="container mx-auto flex items-center justify-between">
               <h1 className="text-xl font-semibold text-white">
@@ -149,7 +149,7 @@ const Index = () => {
             </div>
           </header>
 
-          <div className="container mx-auto max-w-4xl py-6 px-4 flex-1 flex flex-col">
+          <div className="container mx-auto max-w-6xl py-6 px-4 flex-1 flex flex-col">
             <div className="mb-6">
               <ProfileSection userId={user.id} />
             </div>
