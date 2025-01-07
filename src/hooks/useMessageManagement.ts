@@ -8,14 +8,21 @@ export const useMessageManagement = (user: User | null, role: UserRole | null, t
   const { toast } = useToast();
 
   const convertJsonToCitation = (json: Json): Citation => {
-    if (typeof json !== 'object' || !json) {
+    if (typeof json !== 'object' || !json || Array.isArray(json)) {
       throw new Error('Invalid citation data');
     }
+
+    const jsonObj = json as { [key: string]: Json };
+    
+    if (!('id' in jsonObj) || !('sourceId' in jsonObj) || !('sourceType' in jsonObj) || !('sourceName' in jsonObj)) {
+      throw new Error('Missing required citation properties');
+    }
+
     return {
-      id: Number(json.id),
-      sourceId: String(json.sourceId),
-      sourceType: String(json.sourceType),
-      sourceName: String(json.sourceName),
+      id: Number(jsonObj.id),
+      sourceId: String(jsonObj.sourceId),
+      sourceType: String(jsonObj.sourceType),
+      sourceName: String(jsonObj.sourceName),
     };
   };
 
