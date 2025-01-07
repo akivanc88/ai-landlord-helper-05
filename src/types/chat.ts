@@ -1,6 +1,6 @@
 export type UserRole = "landlord" | "tenant";
 
-interface Citation {
+export interface Citation {
   id: number;
   sourceId: string;
   sourceType: string;

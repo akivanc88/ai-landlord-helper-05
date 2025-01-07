@@ -119,6 +119,7 @@ export type Database = {
       }
       messages: {
         Row: {
+          citations: Json[] | null
           created_at: string | null
           id: string
           is_ai: boolean
@@ -129,6 +130,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          citations?: Json[] | null
           created_at?: string | null
           id?: string
           is_ai?: boolean
@@ -139,6 +141,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          citations?: Json[] | null
           created_at?: string | null
           id?: string
           is_ai?: boolean
