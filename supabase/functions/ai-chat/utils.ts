@@ -1,5 +1,5 @@
-import { preprocessText, sanitizeContent } from './textProcessing';
-import { calculateRelevanceScore } from './relevanceScoring';
+import { preprocessText, sanitizeContent } from './textProcessing.ts';
+import { calculateRelevanceScore } from './relevanceScoring.ts';
 
 export const LANDLORD_PROMPT = `You are an expert assistant specializing in helping BC landlords navigate tenant-related challenges, 
 particularly in high-conflict situations. Your expertise includes:
@@ -115,7 +115,7 @@ export async function findRelevantContext(supabase: any, message: string): Promi
         sourceId: source.id,
         sourceType: source.type,
         sourceName: source.displayName,
-        text: sanitizeContent(chunk.text) // Sanitize the content when preparing chunks
+        text: sanitizeContent(chunk.text)
       }))
     );
 
@@ -150,7 +150,7 @@ export async function findRelevantContext(supabase: any, message: string): Promi
       sourceId: chunk.sourceId,
       sourceType: chunk.sourceType,
       sourceName: chunk.sourceName,
-      content: chunk.text // The content is already sanitized
+      content: chunk.text
     }));
 
     const contextWithCitations = relevantChunks
