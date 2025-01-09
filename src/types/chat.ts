@@ -5,6 +5,7 @@ export interface Citation {
   sourceId: string;
   sourceType: string;
   sourceName: string;
+  content?: string;
 }
 
 export interface Message {
