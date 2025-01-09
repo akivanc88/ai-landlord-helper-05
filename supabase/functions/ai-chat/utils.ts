@@ -75,6 +75,46 @@ export const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function preprocessText(text: string): string[] {
+  // Convert to lowercase and remove punctuation
+  const cleanText = text.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "");
+  
+  // Split into words
+  const words = cleanText.split(/\s+/);
+  
+  // Generate word pairs for multi-word concepts
+  const wordPairs = [];
+  for (let i = 0; i < words.length - 1; i++) {
+    wordPairs.push(`${words[i]} ${words[i + 1]}`);
+  }
+  
+  return [...words, ...wordPairs];
+}
+
+function calculateRelevanceScore(chunkWords: string[], queryWords: string[]): number {
+  let score = 0;
+  const importantTerms = new Set([
+    'pet', 'pets', 'animal', 'animals',
+    'damage', 'deposit', 'deposits',
+    'rent', 'rental', 'tenant', 'landlord',
+    'rtb', 'decision', 'decisions'
+  ]);
+
+  for (const queryWord of queryWords) {
+    if (chunkWords.includes(queryWord)) {
+      // Give higher weight to important terms
+      score += importantTerms.has(queryWord) ? 3 : 1;
+      
+      // Additional score for exact matches of multi-word phrases
+      if (queryWord.includes(' ') && chunkWords.includes(queryWord)) {
+        score += 2;
+      }
+    }
+  }
+
+  return score;
+}
+
 export async function findRelevantContext(supabase: any, message: string): Promise<{ context: string; citations: any[] }> {
   try {
     console.log('Fetching knowledge sources...');
@@ -122,25 +162,31 @@ export async function findRelevantContext(supabase: any, message: string): Promi
       return { context: '', citations: [] };
     }
 
-    const messageWords = new Set(message.toLowerCase().split(' '));
-    const relevantChunks = allChunksWithMetadata
-      .map(chunk => ({
+    // Preprocess the query and chunks
+    const queryWords = preprocessText(message);
+    const chunksWithScores = allChunksWithMetadata.map(chunk => {
+      const chunkWords = preprocessText(chunk.text);
+      return {
         ...chunk,
-        score: Array.from(messageWords).filter(word => 
-          chunk.text.toLowerCase().includes(word)
-        ).length
-      }))
+        score: calculateRelevanceScore(chunkWords, queryWords)
+      };
+    });
+
+    // Filter chunks with non-zero scores and sort by relevance
+    const relevantChunks = chunksWithScores
       .filter(chunk => chunk.score > 0)
       .sort((a, b) => b.score - a.score)
       .slice(0, 3);
 
     console.log(`Found ${relevantChunks.length} relevant chunks`);
+    console.log('Relevance scores:', relevantChunks.map(chunk => chunk.score));
 
     const citations = relevantChunks.map((chunk, index) => ({
       id: index + 1,
       sourceId: chunk.sourceId,
       sourceType: chunk.sourceType,
-      sourceName: chunk.sourceName
+      sourceName: chunk.sourceName,
+      content: chunk.text
     }));
 
     const contextWithCitations = relevantChunks
