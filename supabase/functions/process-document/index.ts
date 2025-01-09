@@ -7,9 +7,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Function to chunk text into smaller pieces
-function chunkText(text: string, maxChunkSize = 1000): { text: string, metadata: { position: number } }[] {
-  const words = text.split(' ');
+// Function to sanitize and chunk text
+function processText(text: string, maxChunkSize = 1000): { text: string, metadata: { position: number } }[] {
+  // Remove non-printable characters and normalize whitespace
+  const cleanText = text
+    .replace(/[\x00-\x1F\x7F-\x9F]/g, '')
+    .replace(/\s+/g, ' ')
+    .replace(/[^\x20-\x7E\u00A0-\u00FF]/g, '')
+    .trim();
+
+  const words = cleanText.split(' ');
   const chunks = [];
   let currentChunk = '';
   let position = 0;
@@ -37,7 +44,6 @@ function chunkText(text: string, maxChunkSize = 1000): { text: string, metadata:
 }
 
 serve(async (req) => {
-  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -49,27 +55,19 @@ serve(async (req) => {
       throw new Error('Missing required parameters');
     }
 
-    // Clean and sanitize the content
-    const cleanContent = content.replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F\uFFFD\uFFFE\uFFFF]/g, '');
-
+    // Process and sanitize the content
+    const chunks = processText(content);
+    
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Process the content into chunks
-    const chunks = chunkText(cleanContent);
-    
-    // Determine which table to update based on content type
-    const table = type === 'url' ? 'knowledge_urls' : 'knowledge_pdfs';
-    
-    console.log('Updating table:', table, 'with ID:', id);
-
     // Update the database with processed content
     const { error: updateError } = await supabase
-      .from(table)
+      .from(type === 'url' ? 'knowledge_urls' : 'knowledge_pdfs')
       .update({
-        content: cleanContent,
+        content: chunks[0]?.text || '', // Store the first chunk as the main content
         chunks,
         updated_at: new Date().toISOString(),
       })

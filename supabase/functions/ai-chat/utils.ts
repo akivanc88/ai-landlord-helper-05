@@ -1,3 +1,6 @@
+import { preprocessText, sanitizeContent } from './textProcessing';
+import { calculateRelevanceScore } from './relevanceScoring';
+
 export const LANDLORD_PROMPT = `You are an expert assistant specializing in helping BC landlords navigate tenant-related challenges, 
 particularly in high-conflict situations. Your expertise includes:
 
@@ -75,46 +78,6 @@ export const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-function preprocessText(text: string): string[] {
-  // Convert to lowercase and remove punctuation
-  const cleanText = text.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "");
-  
-  // Split into words
-  const words = cleanText.split(/\s+/);
-  
-  // Generate word pairs for multi-word concepts
-  const wordPairs = [];
-  for (let i = 0; i < words.length - 1; i++) {
-    wordPairs.push(`${words[i]} ${words[i + 1]}`);
-  }
-  
-  return [...words, ...wordPairs];
-}
-
-function calculateRelevanceScore(chunkWords: string[], queryWords: string[]): number {
-  let score = 0;
-  const importantTerms = new Set([
-    'pet', 'pets', 'animal', 'animals',
-    'damage', 'deposit', 'deposits',
-    'rent', 'rental', 'tenant', 'landlord',
-    'rtb', 'decision', 'decisions'
-  ]);
-
-  for (const queryWord of queryWords) {
-    if (chunkWords.includes(queryWord)) {
-      // Give higher weight to important terms
-      score += importantTerms.has(queryWord) ? 3 : 1;
-      
-      // Additional score for exact matches of multi-word phrases
-      if (queryWord.includes(' ') && chunkWords.includes(queryWord)) {
-        score += 2;
-      }
-    }
-  }
-
-  return score;
-}
-
 export async function findRelevantContext(supabase: any, message: string): Promise<{ context: string; citations: any[] }> {
   try {
     console.log('Fetching knowledge sources...');
@@ -151,7 +114,8 @@ export async function findRelevantContext(supabase: any, message: string): Promi
         ...chunk,
         sourceId: source.id,
         sourceType: source.type,
-        sourceName: source.displayName
+        sourceName: source.displayName,
+        text: sanitizeContent(chunk.text) // Sanitize the content when preparing chunks
       }))
     );
 
@@ -186,7 +150,7 @@ export async function findRelevantContext(supabase: any, message: string): Promi
       sourceId: chunk.sourceId,
       sourceType: chunk.sourceType,
       sourceName: chunk.sourceName,
-      content: chunk.text
+      content: chunk.text // The content is already sanitized
     }));
 
     const contextWithCitations = relevantChunks
