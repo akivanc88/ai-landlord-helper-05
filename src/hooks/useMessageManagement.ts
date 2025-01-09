@@ -30,8 +30,6 @@ export const useMessageManagement = (user: User | null, role: UserRole | null, t
     if (!user || !role || !threadId) return [];
     
     try {
-      await supabase.rpc('set_app_role', { role_value: role });
-      
       const { data, error } = await supabase
         .from('messages')
         .select('*')
