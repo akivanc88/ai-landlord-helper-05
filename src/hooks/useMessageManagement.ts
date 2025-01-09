@@ -18,12 +18,15 @@ export const useMessageManagement = (user: User | null, role: UserRole | null, t
       throw new Error('Missing required citation properties');
     }
 
-    return {
+    const citation: Citation = {
       id: Number(jsonObj.id),
       sourceId: String(jsonObj.sourceId),
       sourceType: String(jsonObj.sourceType),
       sourceName: String(jsonObj.sourceName),
+      content: jsonObj.content ? String(jsonObj.content) : undefined
     };
+
+    return citation;
   };
 
   const fetchMessages = async () => {
@@ -81,6 +84,7 @@ export const useMessageManagement = (user: User | null, role: UserRole | null, t
       sourceId: citation.sourceId,
       sourceType: citation.sourceType,
       sourceName: citation.sourceName,
+      content: citation.content
     }));
 
     const { error } = await supabase
