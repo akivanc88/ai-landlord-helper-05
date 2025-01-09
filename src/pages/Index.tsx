@@ -225,9 +225,16 @@ const Index = () => {
         <div className="flex-1 flex flex-col bg-[#f2f2f2]">
           <header className="border-b bg-primary py-4">
             <div className="container mx-auto flex items-center justify-between">
-              <h1 className="text-xl font-semibold text-white">
-                BC Housing Legal Assistant
-              </h1>
+              <div>
+                <h1 className="text-xl font-semibold text-white">
+                  BC Housing Legal Assistant
+                </h1>
+                <div className="flex gap-2 mt-1">
+                  <span className="text-xs bg-accent/50 px-2 py-0.5 rounded">RTB Compliant</span>
+                  <span className="text-xs bg-accent/50 px-2 py-0.5 rounded">BC Laws Updated 2024</span>
+                  <span className="text-xs bg-accent/50 px-2 py-0.5 rounded">Local Resources</span>
+                </div>
+              </div>
               <div className="flex items-center gap-4">
                 {isAdmin && (
                   <AdminKnowledgeBase />
