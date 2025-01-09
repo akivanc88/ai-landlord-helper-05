@@ -38,6 +38,7 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
       };
       setMessages((prev) => [...prev, newMessage]);
 
+      console.log('Sending message to AI chat function:', message);
       const { data: aiData, error: aiError } = await supabase.functions.invoke('ai-chat', {
         body: {
           userRole: role,
@@ -60,6 +61,9 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
         throw aiError;
       }
 
+      console.log('Received AI response:', aiData);
+      console.log('Citations received:', aiData.citations);
+
       await saveAIMessage(aiData.response, aiData.citations);
 
       const aiMessage: Message = {
@@ -68,6 +72,7 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
         timestamp: new Date().toLocaleTimeString(),
         citations: aiData.citations,
       };
+      console.log('Creating AI message with citations:', aiMessage);
       setMessages((prev) => [...prev, aiMessage]);
 
       await checkQuestionCredits();
@@ -86,7 +91,10 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
 
   useEffect(() => {
     if (user && role && threadId) {
-      fetchMessages().then(setMessages);
+      fetchMessages().then(messages => {
+        console.log('Fetched messages with citations:', messages);
+        setMessages(messages);
+      });
       checkQuestionCredits();
     } else {
       setMessages([]);

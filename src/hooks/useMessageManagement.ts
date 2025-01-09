@@ -8,6 +8,7 @@ export const useMessageManagement = (user: User | null, role: UserRole | null, t
   const { toast } = useToast();
 
   const convertJsonToCitation = (json: Json): Citation => {
+    console.log('Converting JSON to Citation:', json);
     if (typeof json !== 'object' || !json || Array.isArray(json)) {
       throw new Error('Invalid citation data');
     }
@@ -25,7 +26,7 @@ export const useMessageManagement = (user: User | null, role: UserRole | null, t
       sourceName: String(jsonObj.sourceName),
       content: jsonObj.content ? String(jsonObj.content) : undefined
     };
-
+    console.log('Converted citation:', citation);
     return citation;
   };
 
@@ -33,6 +34,7 @@ export const useMessageManagement = (user: User | null, role: UserRole | null, t
     if (!user || !role || !threadId) return [];
     
     try {
+      console.log('Fetching messages for thread:', threadId);
       const { data, error } = await supabase
         .from('messages')
         .select('*')
@@ -43,12 +45,15 @@ export const useMessageManagement = (user: User | null, role: UserRole | null, t
 
       if (error) throw error;
 
-      return data.map((msg) => ({
+      console.log('Raw messages data:', data);
+      const messages = data.map((msg) => ({
         text: msg.text,
         isAi: msg.is_ai,
         timestamp: new Date(msg.timestamp).toLocaleTimeString(),
         citations: msg.citations ? (msg.citations as Json[]).map(convertJsonToCitation) : undefined,
       }));
+      console.log('Processed messages with citations:', messages);
+      return messages;
     } catch (error) {
       console.error('Error fetching messages:', error);
       toast({
@@ -63,6 +68,7 @@ export const useMessageManagement = (user: User | null, role: UserRole | null, t
   const saveUserMessage = async (message: string) => {
     if (!user || !role || !threadId) return;
 
+    console.log('Saving user message:', message);
     const { error } = await supabase
       .from('messages')
       .insert({
@@ -79,6 +85,7 @@ export const useMessageManagement = (user: User | null, role: UserRole | null, t
   const saveAIMessage = async (response: string, citations: Citation[]) => {
     if (!user || !role || !threadId) return;
 
+    console.log('Saving AI message with citations:', { response, citations });
     const citationsJson: Json[] = citations.map(citation => ({
       id: citation.id,
       sourceId: citation.sourceId,
