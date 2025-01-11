@@ -96,6 +96,12 @@ export async function findRelevantContext(supabase: any, message: string): Promi
       throw pdfsResponse.error;
     }
 
+    // Combine all content for term extraction
+    const allContent = [
+      ...urlsResponse.data.map(url => url.content || ''),
+      ...pdfsResponse.data.map(pdf => pdf.content || '')
+    ].join(' ');
+
     const allSources = [
       ...urlsResponse.data.map(url => ({
         ...url,
@@ -111,14 +117,11 @@ export async function findRelevantContext(supabase: any, message: string): Promi
 
     const allChunksWithMetadata = allSources.flatMap(source => 
       (source.chunks || []).map(chunk => {
-        // Ensure the chunk text is properly decoded and sanitized
         let processedText = chunk.text;
         try {
-          // If the text appears to be base64 encoded, decode it
           if (chunk.text.match(/^[A-Za-z0-9+/=]+$/)) {
             processedText = atob(chunk.text);
           }
-          // Clean up any control characters or formatting issues
           processedText = sanitizeContent(processedText);
         } catch (error) {
           console.error('Error processing chunk text:', error);
@@ -142,17 +145,15 @@ export async function findRelevantContext(supabase: any, message: string): Promi
       return { context: '', citations: [] };
     }
 
-    // Preprocess the query and chunks
     const queryWords = preprocessText(message);
     const chunksWithScores = allChunksWithMetadata.map(chunk => {
       const chunkWords = preprocessText(chunk.text);
       return {
         ...chunk,
-        score: calculateRelevanceScore(chunkWords, queryWords)
+        score: calculateRelevanceScore(chunkWords, queryWords, allContent)
       };
     });
 
-    // Filter chunks with non-zero scores and sort by relevance
     const relevantChunks = chunksWithScores
       .filter(chunk => chunk.score > 0)
       .sort((a, b) => b.score - a.score)
