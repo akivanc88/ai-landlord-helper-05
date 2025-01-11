@@ -110,13 +110,29 @@ export async function findRelevantContext(supabase: any, message: string): Promi
     ];
 
     const allChunksWithMetadata = allSources.flatMap(source => 
-      (source.chunks || []).map(chunk => ({
-        ...chunk,
-        sourceId: source.id,
-        sourceType: source.type,
-        sourceName: source.displayName,
-        text: sanitizeContent(chunk.text)
-      }))
+      (source.chunks || []).map(chunk => {
+        // Ensure the chunk text is properly decoded and sanitized
+        let processedText = chunk.text;
+        try {
+          // If the text appears to be base64 encoded, decode it
+          if (chunk.text.match(/^[A-Za-z0-9+/=]+$/)) {
+            processedText = atob(chunk.text);
+          }
+          // Clean up any control characters or formatting issues
+          processedText = sanitizeContent(processedText);
+        } catch (error) {
+          console.error('Error processing chunk text:', error);
+          processedText = 'Content could not be processed';
+        }
+
+        return {
+          ...chunk,
+          sourceId: source.id,
+          sourceType: source.type,
+          sourceName: source.displayName,
+          text: processedText
+        };
+      })
     );
 
     console.log(`Found ${allChunksWithMetadata.length} total chunks from knowledge base`);

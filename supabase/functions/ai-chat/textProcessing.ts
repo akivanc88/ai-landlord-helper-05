@@ -15,7 +15,7 @@ export function preprocessText(text: string): string[] {
 }
 
 export function sanitizeContent(content: string): string {
-  // Remove any non-printable characters
+  // Remove any binary or non-printable characters
   let cleaned = content.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
   
   // Replace multiple spaces/newlines with single ones
@@ -23,6 +23,10 @@ export function sanitizeContent(content: string): string {
   
   // Remove any remaining special characters that might cause display issues
   cleaned = cleaned.replace(/[^\x20-\x7E\u00A0-\u00FF]/g, '');
+  
+  // Remove any PDF-specific markers or artifacts
+  cleaned = cleaned.replace(/endstream|endobj|obj|stream/g, '');
+  cleaned = cleaned.replace(/<<\/Filter\/FlateDecode\/Length \d+>>/g, '');
   
   return cleaned.trim();
 }
