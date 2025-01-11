@@ -4,7 +4,11 @@ export function calculateRelevanceScore(chunkWords: string[], queryWords: string
     'pet', 'pets', 'animal', 'animals',
     'damage', 'deposit', 'deposits',
     'rent', 'rental', 'tenant', 'landlord',
-    'rtb', 'decision', 'decisions'
+    'rtb', 'decision', 'decisions',
+    'increase', 'increased', 'increases',
+    'capital', 'expenditure', 'expenditures',
+    'expense', 'expenses',
+    'additional', 'improvement', 'improvements'
   ]);
 
   for (const queryWord of queryWords) {
@@ -15,6 +19,13 @@ export function calculateRelevanceScore(chunkWords: string[], queryWords: string
       // Additional score for exact matches of multi-word phrases
       if (queryWord.includes(' ') && chunkWords.includes(queryWord)) {
         score += 2;
+      }
+
+      // Additional score for capital expenditure related terms appearing together
+      if ((queryWord === 'capital' && chunkWords.includes('expenditure')) ||
+          (queryWord === 'expenditure' && chunkWords.includes('capital')) ||
+          (queryWord === 'rent' && chunkWords.includes('increase'))) {
+        score += 3;
       }
     }
   }
