@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useKnowledgeBase } from "@/hooks/useKnowledgeBase";
+import { KnowledgeSourceManager } from "@/components/KnowledgeSourceManager";
 
 export const AdminKnowledgeBase = () => {
   const [url, setUrl] = useState("");
@@ -97,6 +98,10 @@ export const AdminKnowledgeBase = () => {
             </form>
           </div>
         </div>
+      </div>
+
+      <div className="border-t pt-6">
+        <KnowledgeSourceManager />
       </div>
     </div>
   );
