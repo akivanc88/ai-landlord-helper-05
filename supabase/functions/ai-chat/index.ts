@@ -45,10 +45,15 @@ serve(async (req) => {
     const { context: relevantContext, citations } = await findRelevantContext(supabase, message);
     console.log('Found relevant context:', relevantContext ? 'Yes' : 'No');
 
-    // Prepare system prompt with context
+    // Prepare system prompt with context and instructions
     const basePrompt = userRole === 'landlord' ? LANDLORD_PROMPT : TENANT_PROMPT;
     const systemPrompt = relevantContext 
-      ? `${basePrompt}\n\nRelevant context from BC housing resources:\n${relevantContext}\n\nUse the above context to inform your response when relevant. If the context doesn't address the specific question, rely on your general knowledge of BC housing laws. When citing information from the context, use the citation numbers [1], [2], etc. in your response.`
+      ? `${basePrompt}\n\nRelevant context from BC housing resources:\n${relevantContext}\n\nInstructions for using citations:
+1. When you find relevant information in the provided citations, quote it directly using "..." and cite the source using [X].
+2. After quoting, explain or elaborate on the quoted content.
+3. Make sure to integrate multiple citations if they are relevant to the question.
+4. Always maintain proper citation numbering [1], [2], etc.
+5. Use the exact text from citations when quoting.`
       : basePrompt;
 
     console.log('Sending request to OpenAI...');

@@ -170,8 +170,9 @@ export async function findRelevantContext(supabase: any, message: string): Promi
       content: chunk.text
     }));
 
+    // Format context with clear section markers and citation references
     const contextWithCitations = relevantChunks
-      .map((chunk, index) => `[${index + 1}] ${chunk.text}`)
+      .map((chunk, index) => `CITATION [${index + 1}]:\n${chunk.text}\n`)
       .join('\n\n');
 
     return { context: contextWithCitations, citations };
