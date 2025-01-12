@@ -7,13 +7,32 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Function to decode base64 content if needed
+function decodeBase64IfNeeded(content: string): string {
+  try {
+    // Check if the content is base64 encoded
+    if (content.match(/^[A-Za-z0-9+/=]+$/)) {
+      return atob(content);
+    }
+    return content;
+  } catch (error) {
+    console.error('Error decoding content:', error);
+    return content;
+  }
+}
+
 // Function to sanitize and chunk text
 function processText(text: string, maxChunkSize = 1000): { text: string, metadata: { position: number } }[] {
+  // First decode if needed
+  const decodedText = decodeBase64IfNeeded(text);
+  
   // Remove non-printable characters and normalize whitespace
-  const cleanText = text
-    .replace(/[\x00-\x1F\x7F-\x9F]/g, '')
-    .replace(/\s+/g, ' ')
-    .replace(/[^\x20-\x7E\u00A0-\u00FF]/g, '')
+  const cleanText = decodedText
+    .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // Remove control characters
+    .replace(/\s+/g, ' ') // Normalize whitespace
+    .replace(/[^\x20-\x7E\u00A0-\u00FF]/g, '') // Remove non-ASCII characters
+    .replace(/\\n/g, '\n') // Convert literal \n to newlines
+    .replace(/\\"/g, '"') // Convert escaped quotes
     .trim();
 
   const words = cleanText.split(' ');
@@ -25,10 +44,12 @@ function processText(text: string, maxChunkSize = 1000): { text: string, metadat
     if ((currentChunk + ' ' + word).length <= maxChunkSize) {
       currentChunk += (currentChunk ? ' ' : '') + word;
     } else {
-      chunks.push({
-        text: currentChunk,
-        metadata: { position: position++ }
-      });
+      if (currentChunk) {
+        chunks.push({
+          text: currentChunk,
+          metadata: { position: position++ }
+        });
+      }
       currentChunk = word;
     }
   }
@@ -55,9 +76,17 @@ serve(async (req) => {
       throw new Error('Missing required parameters');
     }
 
+    console.log(`Processing ${type} document with ID: ${id}`);
+    console.log('Content preview:', content.substring(0, 100));
+
     // Process and sanitize the content
     const chunks = processText(content);
     
+    // Log the first chunk for debugging
+    if (chunks.length > 0) {
+      console.log('First processed chunk preview:', chunks[0].text.substring(0, 100));
+    }
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -79,7 +108,11 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify({ 
+        success: true,
+        processedChunks: chunks.length,
+        firstChunkPreview: chunks[0]?.text.substring(0, 100)
+      }),
       { 
         headers: { 
           ...corsHeaders, 
