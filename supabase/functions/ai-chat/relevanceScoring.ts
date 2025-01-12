@@ -13,7 +13,7 @@ function extractImportantTerms(text: string): Set<string> {
   });
 
   // Consider words that appear multiple times as important
-  const frequencyThreshold = 3; // Words appearing 3 or more times
+  const frequencyThreshold = 2; // Lowered threshold to catch more relevant terms
   return new Set(
     Object.entries(wordFrequency)
       .filter(([_, count]) => count >= frequencyThreshold)
@@ -39,23 +39,28 @@ function isStopWord(word: string): boolean {
 const baseImportantTerms = new Set([
   'rent', 'tenant', 'landlord', 'deposit', 'notice',
   'lease', 'eviction', 'repair', 'damage', 'payment',
-  'increase', 'increases', 'increased',
-  'capital', 'expenditure', 'expenditures',
-  'decision', 'decisions', 'ruling', 'rulings',
-  'additional', 'extra', 'cost', 'costs',
-  'application', 'approve', 'approved', 'approval'
+  'increase', 'increases', 'increased', 'raising',
+  'capital', 'expenditure', 'expenditures', 'expense',
+  'decision', 'decisions', 'ruling', 'rulings', 'precedent', 'precedents',
+  'additional', 'extra', 'cost', 'costs', 'past', 'previous',
+  'application', 'approve', 'approved', 'approval',
+  'rtb', 'branch', 'residential', 'tenancy'
 ]);
 
 // Multi-word terms that should be treated as single concepts
 const multiWordTerms = [
   'rent increase',
+  'rental increase',
   'capital expenditure',
   'capital expenditures',
   'additional rent',
-  'rental increase',
   'past decisions',
   'previous rulings',
-  'approved increases'
+  'approved increases',
+  'residential tenancy branch',
+  'tenancy branch',
+  'past precedent',
+  'past precedents'
 ];
 
 export function calculateRelevanceScore(
@@ -73,26 +78,33 @@ export function calculateRelevanceScore(
   ]);
 
   // Check for multi-word terms in both query and chunk
+  const queryText = queryWords.join(' ').toLowerCase();
+  const chunkText = chunkWords.join(' ').toLowerCase();
+  
   for (const multiWordTerm of multiWordTerms) {
-    if (queryWords.join(' ').includes(multiWordTerm) && 
-        chunkWords.join(' ').includes(multiWordTerm)) {
-      score += 5; // Higher score for multi-word matches
-      console.log(`Found multi-word term match: ${multiWordTerm}`);
+    if (queryText.includes(multiWordTerm)) {
+      // If the query contains the multi-word term, give extra weight to chunks containing it
+      if (chunkText.includes(multiWordTerm)) {
+        score += 8; // Increased weight for exact multi-word matches
+        console.log(`Found exact multi-word term match: ${multiWordTerm}`);
+      }
+      // Also check for partial matches of the multi-word term
+      const termParts = multiWordTerm.split(' ');
+      const partialMatches = termParts.filter(part => chunkText.includes(part));
+      if (partialMatches.length > 0) {
+        score += partialMatches.length * 2;
+        console.log(`Found partial matches for multi-word term: ${multiWordTerm}`);
+      }
     }
   }
 
+  // Check individual word matches with context
   for (const queryWord of queryWords) {
     if (chunkWords.includes(queryWord)) {
       // Give higher weight to important terms
-      const termScore = importantTerms.has(queryWord) ? 3 : 1;
+      const termScore = importantTerms.has(queryWord) ? 5 : 1;
       score += termScore;
       console.log(`Term match: ${queryWord}, Score: ${termScore}`);
-      
-      // Additional score for exact matches of multi-word phrases
-      if (queryWord.includes(' ') && chunkWords.includes(queryWord)) {
-        score += 2;
-        console.log(`Exact multi-word match: ${queryWord}`);
-      }
 
       // Additional score for related terms appearing together
       const relatedPairs = [
@@ -103,36 +115,46 @@ export function calculateRelevanceScore(
         ['previous', 'ruling'],
         ['approved', 'increase'],
         ['rental', 'cost'],
-        ['tenant', 'application']
+        ['tenant', 'application'],
+        ['rtb', 'decision'],
+        ['branch', 'ruling']
       ];
 
       for (const [term1, term2] of relatedPairs) {
         if ((queryWord === term1 && chunkWords.includes(term2)) ||
             (queryWord === term2 && chunkWords.includes(term1))) {
-          score += 3;
+          score += 5; // Increased weight for related term pairs
           console.log(`Related pair match: ${term1}-${term2}`);
         }
       }
     }
   }
 
-  // Lower the threshold by giving partial scores for similar terms
+  // Check for similar terms with partial scoring
   const similarTerms = {
-    'increase': ['raises', 'raised', 'raising'],
-    'expenditure': ['expense', 'expenses', 'spending'],
-    'capital': ['investment', 'improvements', 'upgrade'],
-    'decision': ['ruling', 'determination', 'finding']
+    'increase': ['raises', 'raised', 'raising', 'increment', 'adjustment'],
+    'expenditure': ['expense', 'expenses', 'spending', 'cost', 'costs'],
+    'capital': ['investment', 'improvements', 'upgrade', 'renovation'],
+    'decision': ['ruling', 'determination', 'finding', 'precedent'],
+    'past': ['previous', 'prior', 'earlier', 'historical'],
+    'additional': ['extra', 'supplemental', 'further', 'more']
   };
 
   for (const [mainTerm, alternatives] of Object.entries(similarTerms)) {
-    if (queryWords.includes(mainTerm)) {
+    if (queryText.includes(mainTerm)) {
       for (const alt of alternatives) {
-        if (chunkWords.includes(alt)) {
-          score += 1.5;
+        if (chunkText.includes(alt)) {
+          score += 3; // Increased weight for similar term matches
           console.log(`Similar term match: ${mainTerm}-${alt}`);
         }
       }
     }
+  }
+
+  // Boost score if chunk contains numerical values (likely to be relevant for decisions)
+  if (/\d+/.test(chunkText) && queryText.includes('decision')) {
+    score += 2;
+    console.log('Found numerical values in chunk');
   }
 
   console.log('Final relevance score:', score);
