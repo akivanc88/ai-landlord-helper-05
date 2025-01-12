@@ -15,6 +15,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { AdminKnowledgeBase } from "@/components/AdminKnowledgeBase";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowRight, Building2, Home, Scale, Shield } from "lucide-react";
+import { PricingSection } from "@/components/PricingSection";
 
 const Index = () => {
   const { user, signOut } = useAuth();
@@ -121,6 +122,9 @@ const Index = () => {
               </p>
             </div>
           </div>
+
+          {/* Pricing Section */}
+          <PricingSection />
 
           {/* Trust Section */}
           <div className="mt-16 text-center animate-fadeIn animation-delay-400">
