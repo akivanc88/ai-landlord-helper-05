@@ -14,6 +14,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { useToast } from "@/components/ui/use-toast";
 import { AdminKnowledgeBase } from "@/components/AdminKnowledgeBase";
 import { supabase } from "@/integrations/supabase/client";
+import { ArrowRight, Building2, Home, Scale, Shield } from "lucide-react";
 
 const Index = () => {
   const { user, signOut } = useAuth();
@@ -73,18 +74,63 @@ const Index = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#f2f2f2] py-12">
-        <div className="container mx-auto max-w-4xl px-4">
-          <div className="mb-12 text-center">
-            <h1 className="mb-4 text-4xl font-bold text-primary">
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted">
+        <div className="container mx-auto px-4 py-12">
+          {/* Hero Section */}
+          <div className="mb-16 text-center">
+            <h1 className="mb-6 text-5xl font-bold tracking-tight text-primary animate-fadeIn">
               BC Housing Legal Assistant
             </h1>
-            <p className="text-lg text-[#313132]">
-              Get instant answers to your housing-related legal questions
+            <p className="mx-auto mb-8 max-w-2xl text-xl text-muted-foreground animate-fadeIn animation-delay-100">
+              Get instant, accurate answers to your BC housing law questions powered by AI and backed by official documentation.
             </p>
+            <div className="flex justify-center gap-4 animate-fadeIn animation-delay-200">
+              <AuthForm />
+            </div>
           </div>
-          <div className="flex justify-center">
-            <AuthForm />
+
+          {/* Features Grid */}
+          <div className="grid gap-8 md:grid-cols-3 animate-fadeIn animation-delay-300">
+            <div className="rounded-lg bg-card p-6 shadow-lg transition-transform hover:scale-105">
+              <div className="mb-4 inline-block rounded-full bg-primary/10 p-3">
+                <Scale className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="mb-2 text-xl font-semibold">Legal Expertise</h3>
+              <p className="text-muted-foreground">
+                Access accurate information about BC housing laws and regulations, tailored to your specific situation.
+              </p>
+            </div>
+
+            <div className="rounded-lg bg-card p-6 shadow-lg transition-transform hover:scale-105">
+              <div className="mb-4 inline-block rounded-full bg-primary/10 p-3">
+                <Building2 className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="mb-2 text-xl font-semibold">Landlord Support</h3>
+              <p className="text-muted-foreground">
+                Get guidance on property management, tenant relations, and legal compliance in British Columbia.
+              </p>
+            </div>
+
+            <div className="rounded-lg bg-card p-6 shadow-lg transition-transform hover:scale-105">
+              <div className="mb-4 inline-block rounded-full bg-primary/10 p-3">
+                <Home className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="mb-2 text-xl font-semibold">Tenant Resources</h3>
+              <p className="text-muted-foreground">
+                Understand your rights, responsibilities, and options as a tenant under BC housing law.
+              </p>
+            </div>
+          </div>
+
+          {/* Trust Section */}
+          <div className="mt-16 text-center animate-fadeIn animation-delay-400">
+            <div className="mb-8 inline-block rounded-full bg-secondary/20 p-3">
+              <Shield className="h-6 w-6 text-secondary" />
+            </div>
+            <h2 className="mb-4 text-3xl font-bold">Trusted Legal Information</h2>
+            <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+              Our AI assistant is trained on official BC housing documentation and legal resources, ensuring you receive accurate and up-to-date information.
+            </p>
           </div>
         </div>
       </div>
