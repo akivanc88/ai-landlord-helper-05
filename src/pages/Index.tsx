@@ -16,6 +16,7 @@ import { AdminKnowledgeBase } from "@/components/AdminKnowledgeBase";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowRight, Building2, Home, Scale, Shield } from "lucide-react";
 import { PricingSection } from "@/components/PricingSection";
+import { useSearchParams } from "react-router-dom";
 
 const Index = () => {
   const { user, signOut } = useAuth();
@@ -25,6 +26,54 @@ const Index = () => {
   const { threads, createThread } = useThreads(user, role);
   const { messages, isLoading, sendMessage, hasQuestions } = useChat(user, role, activeThreadId);
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+
+  // Handle auth flow and plan selection from URL parameters
+  useEffect(() => {
+    const showAuth = searchParams.get('showAuth');
+    const selectedPlan = searchParams.get('selectedPlan');
+
+    if (user && selectedPlan) {
+      // If user is logged in and has a selected plan, initiate checkout
+      handlePlanSelect(selectedPlan as "monthly" | "annual");
+    }
+  }, [user, searchParams]);
+
+  const handlePlanSelect = async (plan: "monthly" | "annual") => {
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      
+      if (!session) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Please log in to purchase a plan",
+        });
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { plan },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+      
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error('Error initiating checkout:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to initiate payment process",
+      });
+    }
+  };
 
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -74,68 +123,75 @@ const Index = () => {
   };
 
   if (!user) {
+    const showAuth = searchParams.get('showAuth') === 'true';
+    
     return (
       <div className="min-h-screen bg-gradient-to-b from-background to-muted">
         <div className="container mx-auto px-4 py-12">
-          {/* Hero Section */}
-          <div className="mb-16 text-center">
-            <h1 className="mb-6 text-5xl font-bold tracking-tight text-primary animate-fadeIn">
-              BC Housing Legal Assistant
-            </h1>
-            <p className="mx-auto mb-8 max-w-2xl text-xl text-muted-foreground animate-fadeIn animation-delay-100">
-              Get instant, accurate answers to your BC housing law questions powered by AI and backed by official documentation.
-            </p>
-            <div className="flex justify-center gap-4 animate-fadeIn animation-delay-200">
+          {showAuth ? (
+            <div className="max-w-md mx-auto">
               <AuthForm />
             </div>
-          </div>
-
-          {/* Features Grid */}
-          <div className="grid gap-8 md:grid-cols-3 animate-fadeIn animation-delay-300">
-            <div className="rounded-lg bg-card p-6 shadow-lg transition-transform hover:scale-105">
-              <div className="mb-4 inline-block rounded-full bg-primary/10 p-3">
-                <Scale className="h-6 w-6 text-primary" />
+          ) : (
+            <>
+              {/* Hero Section */}
+              <div className="mb-16 text-center">
+                <h1 className="mb-6 text-5xl font-bold tracking-tight text-primary animate-fadeIn">
+                  BC Housing Legal Assistant
+                </h1>
+                <p className="mx-auto mb-8 max-w-2xl text-xl text-muted-foreground animate-fadeIn animation-delay-100">
+                  Get instant, accurate answers to your BC housing law questions powered by AI and backed by official documentation.
+                </p>
               </div>
-              <h3 className="mb-2 text-xl font-semibold">Legal Expertise</h3>
-              <p className="text-muted-foreground">
-                Access accurate information about BC housing laws and regulations, tailored to your specific situation.
-              </p>
-            </div>
 
-            <div className="rounded-lg bg-card p-6 shadow-lg transition-transform hover:scale-105">
-              <div className="mb-4 inline-block rounded-full bg-primary/10 p-3">
-                <Building2 className="h-6 w-6 text-primary" />
+              {/* Features Grid */}
+              <div className="grid gap-8 md:grid-cols-3 animate-fadeIn animation-delay-300">
+                <div className="rounded-lg bg-card p-6 shadow-lg transition-transform hover:scale-105">
+                  <div className="mb-4 inline-block rounded-full bg-primary/10 p-3">
+                    <Scale className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="mb-2 text-xl font-semibold">Legal Expertise</h3>
+                  <p className="text-muted-foreground">
+                    Access accurate information about BC housing laws and regulations, tailored to your specific situation.
+                  </p>
+                </div>
+
+                <div className="rounded-lg bg-card p-6 shadow-lg transition-transform hover:scale-105">
+                  <div className="mb-4 inline-block rounded-full bg-primary/10 p-3">
+                    <Building2 className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="mb-2 text-xl font-semibold">Landlord Support</h3>
+                  <p className="text-muted-foreground">
+                    Get guidance on property management, tenant relations, and legal compliance in British Columbia.
+                  </p>
+                </div>
+
+                <div className="rounded-lg bg-card p-6 shadow-lg transition-transform hover:scale-105">
+                  <div className="mb-4 inline-block rounded-full bg-primary/10 p-3">
+                    <Home className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="mb-2 text-xl font-semibold">Tenant Resources</h3>
+                  <p className="text-muted-foreground">
+                    Understand your rights, responsibilities, and options as a tenant under BC housing law.
+                  </p>
+                </div>
               </div>
-              <h3 className="mb-2 text-xl font-semibold">Landlord Support</h3>
-              <p className="text-muted-foreground">
-                Get guidance on property management, tenant relations, and legal compliance in British Columbia.
-              </p>
-            </div>
 
-            <div className="rounded-lg bg-card p-6 shadow-lg transition-transform hover:scale-105">
-              <div className="mb-4 inline-block rounded-full bg-primary/10 p-3">
-                <Home className="h-6 w-6 text-primary" />
+              {/* Pricing Section */}
+              <PricingSection />
+
+              {/* Trust Section */}
+              <div className="mt-16 text-center animate-fadeIn animation-delay-400">
+                <div className="mb-8 inline-block rounded-full bg-secondary/20 p-3">
+                  <Shield className="h-6 w-6 text-secondary" />
+                </div>
+                <h2 className="mb-4 text-3xl font-bold">Trusted Legal Information</h2>
+                <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+                  Our AI assistant is trained on official BC housing documentation and legal resources, ensuring you receive accurate and up-to-date information.
+                </p>
               </div>
-              <h3 className="mb-2 text-xl font-semibold">Tenant Resources</h3>
-              <p className="text-muted-foreground">
-                Understand your rights, responsibilities, and options as a tenant under BC housing law.
-              </p>
-            </div>
-          </div>
-
-          {/* Pricing Section */}
-          <PricingSection />
-
-          {/* Trust Section */}
-          <div className="mt-16 text-center animate-fadeIn animation-delay-400">
-            <div className="mb-8 inline-block rounded-full bg-secondary/20 p-3">
-              <Shield className="h-6 w-6 text-secondary" />
-            </div>
-            <h2 className="mb-4 text-3xl font-bold">Trusted Legal Information</h2>
-            <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-              Our AI assistant is trained on official BC housing documentation and legal resources, ensuring you receive accurate and up-to-date information.
-            </p>
-          </div>
+            </>
+          )}
         </div>
       </div>
     );
@@ -245,6 +301,3 @@ const Index = () => {
       </div>
     </SidebarProvider>
   );
-};
-
-export default Index;

@@ -14,8 +14,11 @@ export const PricingSection = () => {
   const handlePlanSelect = async (plan: "monthly" | "annual") => {
     try {
       if (!user) {
-        // If not logged in, redirect to auth with plan selection in URL
-        navigate(`/?showAuth=true&selectedPlan=${plan}`);
+        // Store the selected plan in URL parameters and redirect to auth
+        const searchParams = new URLSearchParams(window.location.search);
+        searchParams.set('showAuth', 'true');
+        searchParams.set('selectedPlan', plan);
+        navigate(`/?${searchParams.toString()}`);
         return;
       }
 
@@ -43,7 +46,10 @@ export const PricingSection = () => {
       if (error) throw error;
       
       if (data?.url) {
+        // Redirect to Stripe checkout
         window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL received');
       }
     } catch (error) {
       console.error('Error initiating checkout:', error);
@@ -110,9 +116,9 @@ export const PricingSection = () => {
               <h3 className="text-2xl font-bold mb-2">Annual</h3>
               <div className="flex items-baseline mb-4">
                 <span className="text-4xl font-bold">$90</span>
-                <span className="text-muted-foreground ml-2">/month</span>
+                <span className="text-muted-foreground ml-2">/year</span>
               </div>
-              <p className="text-sm text-muted-foreground mb-4">Billed annually</p>
+              <p className="text-sm text-muted-foreground mb-4">Save 25% annually</p>
               <Button 
                 onClick={() => handlePlanSelect("annual")} 
                 className="w-full mb-6 bg-primary"
