@@ -3,19 +3,56 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export const PricingSection = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const handlePlanSelect = (plan: "monthly" | "annual") => {
-    if (!user) {
-      // If not logged in, show auth form
-      navigate("/?showAuth=true");
-      return;
+  const handlePlanSelect = async (plan: "monthly" | "annual") => {
+    try {
+      if (!user) {
+        // If not logged in, redirect to auth with plan selection in URL
+        navigate(`/?showAuth=true&selectedPlan=${plan}`);
+        return;
+      }
+
+      // Get fresh session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      
+      if (!session) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Please log in to purchase a plan",
+        });
+        return;
+      }
+
+      // Create checkout session
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { plan },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+      
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error('Error initiating checkout:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to initiate payment process",
+      });
     }
-    // If logged in, handle subscription (this will be implemented later)
-    console.log(`Selected ${plan} plan`);
   };
 
   return (
