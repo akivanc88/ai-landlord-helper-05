@@ -39,8 +39,8 @@ serve(async (req) => {
     
     // Set the appropriate price ID based on the plan
     const price_id = plan === 'monthly' 
-      ? 'price_1OvGPxBaji74YJFkRXXPMGbJ'  // Monthly plan price ID
-      : 'price_1OvGQhBaji74YJFkxEDGPkEm'   // Annual plan price ID
+      ? 'price_1QdPTiBaji74YJFklj6r820V'  // Monthly plan price ID
+      : 'price_1QgfDaBaji74YJFkAXxqu3kU'   // Annual plan price ID
 
     const customers = await stripe.customers.list({
       email: email,
