@@ -301,3 +301,6 @@ const Index = () => {
       </div>
     </SidebarProvider>
   );
+};
+
+export default Index;
