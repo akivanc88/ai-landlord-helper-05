@@ -185,57 +185,57 @@ const Index = () => {
               </div>
 
               {/* Contact Section */}
-              <div id="contact" className="py-16 bg-[#0A0F1C] text-white">
+              <div id="contact" className="py-16 bg-[#003366] text-white">
                 <div className="container mx-auto px-4">
-                  <h2 className="text-5xl font-bold text-[#6366F1] text-center mb-4">
+                  <h2 className="text-5xl font-bold text-[#fcba19] text-center mb-4">
                     Need help getting started?
                   </h2>
-                  <p className="text-xl text-gray-400 text-center mb-16 max-w-3xl mx-auto">
+                  <p className="text-xl text-gray-300 text-center mb-16 max-w-3xl mx-auto">
                     Book a personalized demo with our team to get the most out of our platform
                   </p>
                   
                   <div className="grid md:grid-cols-2 gap-12 items-center">
                     <div className="space-y-12">
                       <div className="flex items-start gap-4">
-                        <div className="p-2 bg-[#6366F1]/10 rounded-lg">
-                          <Scale className="h-6 w-6 text-[#6366F1]" />
+                        <div className="p-2 bg-[#fcba19]/10 rounded-lg">
+                          <Scale className="h-6 w-6 text-[#fcba19]" />
                         </div>
                         <div>
                           <h3 className="text-xl font-semibold mb-2">Personalized Support</h3>
-                          <p className="text-gray-400">Get a one-on-one walkthrough tailored to your specific needs</p>
+                          <p className="text-gray-300">Get a one-on-one walkthrough tailored to your specific needs</p>
                         </div>
                       </div>
                       
                       <div className="flex items-start gap-4">
-                        <div className="p-2 bg-[#6366F1]/10 rounded-lg">
-                          <Calendar className="h-6 w-6 text-[#6366F1]" />
+                        <div className="p-2 bg-[#fcba19]/10 rounded-lg">
+                          <Calendar className="h-6 w-6 text-[#fcba19]" />
                         </div>
                         <div>
                           <h3 className="text-xl font-semibold mb-2">Flexible Scheduling</h3>
-                          <p className="text-gray-400">Choose a time that works best for you</p>
+                          <p className="text-gray-300">Choose a time that works best for you</p>
                         </div>
                       </div>
                       
                       <div className="flex items-start gap-4">
-                        <div className="p-2 bg-[#6366F1]/10 rounded-lg">
-                          <Phone className="h-6 w-6 text-[#6366F1]" />
+                        <div className="p-2 bg-[#fcba19]/10 rounded-lg">
+                          <Phone className="h-6 w-6 text-[#fcba19]" />
                         </div>
                         <div>
                           <h3 className="text-xl font-semibold mb-2">Direct Access</h3>
-                          <p className="text-gray-400">Speak directly with our team who will guide you through setting up your workspace and implementing best practices for your needs.</p>
+                          <p className="text-gray-300">Speak directly with our team who will guide you through setting up your workspace and implementing best practices for your needs.</p>
                         </div>
                       </div>
                     </div>
                     
-                    <div className="bg-[#18191B] rounded-lg p-8">
+                    <div className="bg-[#38598a] rounded-lg p-8">
                       <div className="text-center mb-8">
                         <h3 className="text-3xl font-bold mb-4">Book a Meeting</h3>
-                        <p className="text-gray-400">Select the duration that works best for you</p>
+                        <p className="text-gray-300">Select the duration that works best for you</p>
                       </div>
                       
                       <div className="space-y-4">
                         <Button
-                          className="w-full py-6 text-lg bg-[#27282B] hover:bg-[#2F3033]"
+                          className="w-full py-6 text-lg bg-[#fcba19] hover:bg-[#fcba19]/90 text-black"
                           variant="secondary"
                         >
                           <Calendar className="mr-2 h-5 w-5" />
@@ -243,7 +243,7 @@ const Index = () => {
                         </Button>
                         
                         <Button
-                          className="w-full py-6 text-lg bg-[#27282B] hover:bg-[#2F3033]"
+                          className="w-full py-6 text-lg bg-[#fcba19] hover:bg-[#fcba19]/90 text-black"
                           variant="secondary"
                         >
                           <Calendar className="mr-2 h-5 w-5" />
