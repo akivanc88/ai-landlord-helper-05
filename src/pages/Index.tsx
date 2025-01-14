@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ArrowRight, Building2, Home, Scale, Shield } from "lucide-react";
 import { PricingSection } from "@/components/PricingSection";
 import { useSearchParams } from "react-router-dom";
+import { NavigationBar } from "@/components/NavigationBar";
 
 const Index = () => {
   const { user, signOut } = useAuth();
@@ -127,6 +128,7 @@ const Index = () => {
     
     return (
       <div className="min-h-screen bg-gradient-to-b from-background to-muted">
+        <NavigationBar />
         <div className="container mx-auto px-4 py-12">
           {showAuth ? (
             <div className="max-w-md mx-auto">
@@ -178,7 +180,9 @@ const Index = () => {
               </div>
 
               {/* Pricing Section */}
-              <PricingSection />
+              <div id="pricing">
+                <PricingSection />
+              </div>
 
               {/* Trust Section */}
               <div className="mt-16 text-center animate-fadeIn animation-delay-400">
@@ -199,17 +203,20 @@ const Index = () => {
 
   if (!role) {
     return (
-      <div className="container mx-auto max-w-4xl px-4 py-12">
-        <div className="mb-12 text-center">
-          <h1 className="mb-4 text-4xl font-bold text-primary">
-            BC Housing Legal Assistant
-          </h1>
-          <p className="text-lg text-[#313132]">
-            Get instant answers to your housing-related legal questions
-          </p>
+      <>
+        <NavigationBar />
+        <div className="container mx-auto max-w-4xl px-4 py-12">
+          <div className="mb-12 text-center">
+            <h1 className="mb-4 text-4xl font-bold text-primary">
+              BC Housing Legal Assistant
+            </h1>
+            <p className="text-lg text-[#313132]">
+              Get instant answers to your housing-related legal questions
+            </p>
+          </div>
+          <RoleSelection onSelect={setRole} />
         </div>
-        <RoleSelection onSelect={setRole} />
-      </div>
+      </>
     );
   }
 
