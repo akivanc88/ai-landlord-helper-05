@@ -14,7 +14,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { useToast } from "@/components/ui/use-toast";
 import { AdminKnowledgeBase } from "@/components/AdminKnowledgeBase";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowRight, Building2, Home, Scale, Shield } from "lucide-react";
+import { ArrowRight, Building2, Home, Scale, Shield, Calendar, Phone } from "lucide-react";
 import { PricingSection } from "@/components/PricingSection";
 import { useSearchParams } from "react-router-dom";
 import { NavigationBar } from "@/components/NavigationBar";
@@ -147,7 +147,7 @@ const Index = () => {
               </div>
 
               {/* Features Grid */}
-              <div className="grid gap-8 md:grid-cols-3 animate-fadeIn animation-delay-300">
+              <div id="features" className="grid gap-8 md:grid-cols-3 animate-fadeIn animation-delay-300">
                 <div className="rounded-lg bg-card p-6 shadow-lg transition-transform hover:scale-105">
                   <div className="mb-4 inline-block rounded-full bg-primary/10 p-3">
                     <Scale className="h-6 w-6 text-primary" />
@@ -182,6 +182,77 @@ const Index = () => {
               {/* Pricing Section */}
               <div id="pricing">
                 <PricingSection />
+              </div>
+
+              {/* Contact Section */}
+              <div id="contact" className="py-16 bg-[#0A0F1C] text-white">
+                <div className="container mx-auto px-4">
+                  <h2 className="text-5xl font-bold text-[#6366F1] text-center mb-4">
+                    Need help getting started?
+                  </h2>
+                  <p className="text-xl text-gray-400 text-center mb-16 max-w-3xl mx-auto">
+                    Book a personalized demo with our team to get the most out of our platform
+                  </p>
+                  
+                  <div className="grid md:grid-cols-2 gap-12 items-center">
+                    <div className="space-y-12">
+                      <div className="flex items-start gap-4">
+                        <div className="p-2 bg-[#6366F1]/10 rounded-lg">
+                          <Scale className="h-6 w-6 text-[#6366F1]" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-semibold mb-2">Personalized Support</h3>
+                          <p className="text-gray-400">Get a one-on-one walkthrough tailored to your specific needs</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start gap-4">
+                        <div className="p-2 bg-[#6366F1]/10 rounded-lg">
+                          <Calendar className="h-6 w-6 text-[#6366F1]" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-semibold mb-2">Flexible Scheduling</h3>
+                          <p className="text-gray-400">Choose a time that works best for you</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start gap-4">
+                        <div className="p-2 bg-[#6366F1]/10 rounded-lg">
+                          <Phone className="h-6 w-6 text-[#6366F1]" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-semibold mb-2">Direct Access</h3>
+                          <p className="text-gray-400">Speak directly with our team who will guide you through setting up your workspace and implementing best practices for your needs.</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-[#18191B] rounded-lg p-8">
+                      <div className="text-center mb-8">
+                        <h3 className="text-3xl font-bold mb-4">Book a Meeting</h3>
+                        <p className="text-gray-400">Select the duration that works best for you</p>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <Button
+                          className="w-full py-6 text-lg bg-[#27282B] hover:bg-[#2F3033]"
+                          variant="secondary"
+                        >
+                          <Calendar className="mr-2 h-5 w-5" />
+                          15 Min Meeting
+                        </Button>
+                        
+                        <Button
+                          className="w-full py-6 text-lg bg-[#27282B] hover:bg-[#2F3033]"
+                          variant="secondary"
+                        >
+                          <Calendar className="mr-2 h-5 w-5" />
+                          30 Min Meeting
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Trust Section */}

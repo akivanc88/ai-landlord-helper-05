@@ -17,12 +17,15 @@ export const NavigationBar = () => {
               <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
                 Home
               </Link>
+              <Link to="/#features" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                Features
+              </Link>
               <Link to="/#pricing" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
                 Pricing
               </Link>
-              <a href="https://docs.lovable.dev" target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                Documentation
-              </a>
+              <Link to="/#contact" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                Contact
+              </Link>
             </div>
           </div>
           
