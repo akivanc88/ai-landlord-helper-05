@@ -92,6 +92,33 @@ export const useThreads = (user: User | null, role: string | null) => {
     }
   };
 
+  const generateThreadTitle = async (threadId: string) => {
+    try {
+      // Fetch the first user message from the thread
+      const { data: messages, error: messagesError } = await supabase
+        .from('messages')
+        .select('text')
+        .eq('thread_id', threadId)
+        .eq('is_ai', false)
+        .order('created_at', { ascending: true })
+        .limit(1);
+
+      if (messagesError) throw messagesError;
+
+      if (messages && messages.length > 0) {
+        const firstMessage = messages[0].text;
+        // Create a title from the first message (truncate if too long)
+        const newTitle = firstMessage.length > 50 
+          ? `${firstMessage.substring(0, 47)}...`
+          : firstMessage;
+        
+        await updateThreadTitle(threadId, newTitle);
+      }
+    } catch (error) {
+      console.error('Error generating thread title:', error);
+    }
+  };
+
   useEffect(() => {
     if (user && role) {
       fetchThreads();
@@ -102,6 +129,7 @@ export const useThreads = (user: User | null, role: string | null) => {
     threads,
     createThread,
     updateThreadTitle,
+    generateThreadTitle,
     isLoading,
   };
 };

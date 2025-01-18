@@ -1,54 +1,65 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
+import { Send } from "lucide-react";
+import { useThreads } from "@/hooks/useThreads";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ChatInputProps {
-  onSend: (message: string) => void;
-  isLoading?: boolean;
-  hasQuestions?: boolean;
+  onSend: (message: string) => Promise<void>;
+  isLoading: boolean;
+  hasQuestions: boolean;
+  threadId?: string | null;
 }
 
-export const ChatInput = ({ onSend, isLoading, hasQuestions = true }: ChatInputProps) => {
+export const ChatInput = ({ onSend, isLoading, hasQuestions, threadId }: ChatInputProps) => {
   const [message, setMessage] = useState("");
+  const { user } = useAuth();
+  const { generateThreadTitle } = useThreads(user, null);
 
-  const handleSend = () => {
-    if (message.trim()) {
-      onSend(message);
-      setMessage("");
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!message.trim() || isLoading) return;
+
+    const trimmedMessage = message.trim();
+    setMessage("");
+    await onSend(trimmedMessage);
+
+    // Generate title after the first message is sent
+    if (threadId) {
+      generateThreadTitle(threadId);
     }
   };
 
-  if (!hasQuestions) {
-    return (
-      <div className="flex animate-slideUp flex-col gap-4 border-t bg-white p-6">
-        <div className="text-center">
-          <p className="text-red-600 mb-2">You've used all your available questions.</p>
-          <Button
-            onClick={() => alert("Purchase functionality coming soon!")}
-            className="bg-primary hover:bg-accent text-white font-semibold"
-          >
-            Purchase More Questions
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
+    }
+  };
 
   return (
-    <div className="flex animate-slideUp flex-col gap-4 border-t bg-white p-6">
+    <form onSubmit={handleSubmit} className="relative">
       <Textarea
-        placeholder="Type your question here..."
         value={message}
         onChange={(e) => setMessage(e.target.value)}
-        className="min-h-[100px] resize-none rounded border-[#606060] focus:border-primary focus:ring-primary"
+        onKeyDown={handleKeyDown}
+        placeholder={
+          hasQuestions
+            ? "Type your message here..."
+            : "You have no more questions available. Please upgrade your plan to continue."
+        }
+        disabled={!hasQuestions || isLoading}
+        className="min-h-[100px] resize-none pr-24"
       />
       <Button
-        onClick={handleSend}
-        disabled={isLoading || !message.trim()}
-        className="ml-auto w-32 bg-primary hover:bg-accent text-white font-semibold"
+        type="submit"
+        size="icon"
+        disabled={!message.trim() || isLoading || !hasQuestions}
+        className="absolute bottom-4 right-4"
       >
-        {isLoading ? "Sending..." : "Send"}
+        <Send className="h-4 w-4" />
       </Button>
-    </div>
+    </form>
   );
 };
