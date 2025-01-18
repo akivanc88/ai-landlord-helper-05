@@ -71,12 +71,21 @@ export const ThreadsSidebar = ({
 
   const handleDelete = async (threadId: string) => {
     try {
-      const { error } = await supabase
+      // First, delete all messages associated with this thread
+      const { error: messagesError } = await supabase
+        .from('messages')
+        .delete()
+        .eq('thread_id', threadId);
+
+      if (messagesError) throw messagesError;
+
+      // Then, delete the thread itself
+      const { error: threadError } = await supabase
         .from('conversation_threads')
         .delete()
         .eq('id', threadId);
 
-      if (error) throw error;
+      if (threadError) throw threadError;
 
       toast({
         title: "Success",
