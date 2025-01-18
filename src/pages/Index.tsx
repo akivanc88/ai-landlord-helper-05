@@ -18,6 +18,7 @@ import { ArrowRight, Building2, Home, Scale, Shield, Calendar, Phone } from "luc
 import { PricingSection } from "@/components/PricingSection";
 import { useSearchParams } from "react-router-dom";
 import { NavigationBar } from "@/components/NavigationBar";
+import { PopupModal } from "react-calendly";
 
 const Index = () => {
   const { user, signOut } = useAuth();
@@ -28,6 +29,8 @@ const Index = () => {
   const { messages, isLoading, sendMessage, hasQuestions } = useChat(user, role, activeThreadId);
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
+  const [isCalendlyOpen, setIsCalendlyOpen] = useState(false);
+  const [meetingDuration, setMeetingDuration] = useState<"15" | "30" | null>(null);
 
   // Handle auth flow and plan selection from URL parameters
   useEffect(() => {
@@ -121,6 +124,11 @@ const Index = () => {
         description: "You can now start chatting!",
       });
     }
+  };
+
+  const handleCalendlyOpen = (duration: "15" | "30") => {
+    setMeetingDuration(duration);
+    setIsCalendlyOpen(true);
   };
 
   if (!user) {
@@ -237,6 +245,7 @@ const Index = () => {
                         <Button
                           className="w-full py-6 text-lg bg-[#fcba19] hover:bg-[#fcba19]/90 text-black"
                           variant="secondary"
+                          onClick={() => handleCalendlyOpen("15")}
                         >
                           <Calendar className="mr-2 h-5 w-5" />
                           15 Min Meeting
@@ -245,6 +254,7 @@ const Index = () => {
                         <Button
                           className="w-full py-6 text-lg bg-[#fcba19] hover:bg-[#fcba19]/90 text-black"
                           variant="secondary"
+                          onClick={() => handleCalendlyOpen("30")}
                         >
                           <Calendar className="mr-2 h-5 w-5" />
                           30 Min Meeting
@@ -268,6 +278,24 @@ const Index = () => {
             </>
           )}
         </div>
+
+        {/* Calendly Modal */}
+        <PopupModal
+          url="https://calendly.com/your-calendly-url"
+          onModalClose={() => setIsCalendlyOpen(false)}
+          open={isCalendlyOpen}
+          rootElement={document.getElementById("root")!}
+          prefill={{
+            email: user?.email,
+            firstName: user?.user_metadata?.first_name,
+            lastName: user?.user_metadata?.last_name,
+          }}
+          utm={{
+            utmCampaign: "bc_housing_assistant",
+            utmSource: "website",
+            utmMedium: "direct",
+          }}
+        />
       </div>
     );
   }
