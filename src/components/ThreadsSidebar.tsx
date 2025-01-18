@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Thread } from "@/types/thread";
-import { PlusCircle, Edit2 } from "lucide-react";
+import { PlusCircle, Edit2, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
@@ -69,6 +69,32 @@ export const ThreadsSidebar = ({
     setEditingThreadId(null);
   };
 
+  const handleDelete = async (threadId: string) => {
+    try {
+      const { error } = await supabase
+        .from('conversation_threads')
+        .delete()
+        .eq('id', threadId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Conversation deleted successfully",
+      });
+
+      // Refresh the page to update the threads list
+      window.location.reload();
+    } catch (error) {
+      console.error('Error deleting thread:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete conversation",
+      });
+    }
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleEditSave();
@@ -122,17 +148,30 @@ export const ThreadsSidebar = ({
                           {new Date(thread.updated_at).toLocaleDateString()}
                         </span>
                       </SidebarMenuButton>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditStart(thread);
-                        }}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditStart(thread);
+                          }}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(thread.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </SidebarMenuItem>
