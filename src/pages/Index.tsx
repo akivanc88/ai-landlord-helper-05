@@ -281,7 +281,7 @@ const Index = () => {
 
         {/* Calendly Modal */}
         <PopupModal
-          url="https://calendly.com/your-calendly-url"
+          url="https://calendly.com/er-akashmajumder"
           onModalClose={() => setIsCalendlyOpen(false)}
           open={isCalendlyOpen}
           rootElement={document.getElementById("root")!}
