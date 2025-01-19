@@ -1,148 +1,126 @@
-# Welcome to your Lovable project
+# BC Housing Legal Assistant
 
-## Multi-Agent LLM Orchestration Architecture
+## Overview
+This application provides AI-powered legal assistance for landlords and tenants in British Columbia, utilizing a specialized multi-agent architecture to deliver role-specific guidance and information.
 
-### Overview
-This application uses a specialized multi-agent architecture to provide tailored responses for both landlords and tenants in British Columbia. The system processes each query through role-specific agents that understand the unique context and requirements of each user type.
+## User Interaction Flow
 
-### How It Works
+1. **Landing Page Experience**
+   - Users arrive at a modern landing page with:
+     - Navigation bar (Home, Features, Pricing, Contact)
+     - Feature highlights
+     - Transparent pricing options
+     - Contact section with Calendly integration for booking meetings
 
-1. **User Role Selection**
-   - Users first identify themselves as either a landlord or tenant
-   - Example: A landlord selecting their role gets access to property management and tenant relation contexts
-
-2. **Question Processing Flow**
+2. **Authentication Flow**
    ```
-   User Question → Role Validation → Credit Check → AI Processing → Response
+   Landing Page → Sign Up/Login → Role Selection → Chat Interface
    ```
+   - New users receive 100 free questions valid for one month
+   - Subscription options available through Stripe integration
 
-3. **Real-World Examples**
+3. **Role Selection**
+   - Users must identify as either:
+     - Landlord: Access property management and tenant relation contexts
+     - Tenant: Access tenant rights and landlord issue contexts
 
-   **Landlord Example:**
+4. **Chat Interface**
    ```
-   User Input: "Can I increase rent this year?"
-   
-   System Process:
-   1. Validates landlord role
-   2. Checks question credits
-   3. Applies landlord-specific context:
-      - BC rent increase guidelines
-      - Notice requirements
-      - Allowable percentage increases
-   
-   AI Response: "For 2024 in BC, you can increase rent by up to 3.5%. 
-   You must provide:
-   - 3 months' written notice using the RTB-7 form
-   - One rent increase per 12 months
-   - Calculate from the last increase or start of tenancy"
+   Question Input → AI Processing → Response with Citations
    ```
+   - Users can:
+     - Start new conversations
+     - View past conversations with content-based titles
+     - Delete previous conversation threads
+     - Access cited sources through clickable references
 
-   **Tenant Example:**
-   ```
-   User Input: "My landlord wants to evict me for renovations"
-   
-   System Process:
-   1. Validates tenant role
-   2. Checks question credits
-   3. Applies tenant-specific context:
-      - Renovation eviction rules
-      - Tenant rights
-      - Compensation requirements
-   
-   AI Response: "In BC, for renovation evictions:
-   1. Landlord must have permits
-   2. You're entitled to 4 months' notice
-   3. You deserve 1 month's rent compensation
-   4. You have right of first refusal
-   5. Can dispute through RTB within 30 days"
-   ```
+5. **Question Credit System**
+   - Track remaining questions
+   - Purchase additional credits through subscription plans
+   - Credits expire after set duration
 
-4. **Technical Implementation**
-   ```typescript
-   // Role-specific system prompts
-   const systemPrompts = {
-     landlord: `You are an AI assistant specializing in BC landlord 
-                regulations, property management, and tenant relations...`,
-     tenant: `You are an AI assistant specializing in BC tenant rights, 
-             rental regulations, and dealing with landlord issues...`
-   };
+## Technical Architecture
 
-   // Message processing
-   async function processQuery(message, role) {
-     // Validate credits
-     // Apply role-specific context
-     // Generate AI response using GPT-4-mini
-     // Store interaction history
-   }
-   ```
+### 1. Multi-Agent LLM System
+```typescript
+// Role-specific context management
+const contextManager = {
+  landlord: {
+    primary: "BC landlord regulations expert",
+    context: ["property management", "tenant relations"]
+  },
+  tenant: {
+    primary: "BC tenant rights advocate",
+    context: ["rental regulations", "tenant protections"]
+  }
+};
+```
 
-## Project info
+### 2. Knowledge Integration
+- PDF Document Processing
+- URL Content Integration
+- Citation Management
+- Relevance Scoring
 
-**URL**: https://lovable.dev/projects/9c6296a1-1c65-4ad6-b1c2-bfa909afcb5a
+### 3. Data Flow
+```
+User Input → Role Validation → Credit Check → 
+Knowledge Base Query → AI Processing → 
+Response Generation with Citations
+```
 
-## How can I edit this code?
+### 4. Security & Access Control
+- Row Level Security (RLS) policies
+- Role-based access control
+- Admin interface for knowledge base management
 
-There are several ways of editing your application.
+## Support & Contact
 
-**Use Lovable**
+- Schedule personalized demos through Calendly integration
+- Direct access to team support
+- Flexible meeting durations (15/30 minutes)
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/9c6296a1-1c65-4ad6-b1c2-bfa909afcb5a) and start prompting.
+## Getting Started
 
-Changes made via Lovable will be committed automatically to this repo.
+1. Visit the landing page
+2. Click "Get Started" or navigate to pricing
+3. Create an account
+4. Select your role (Landlord/Tenant)
+5. Begin asking questions about BC housing law
 
-**Use your preferred IDE**
+## Development Setup
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+Follow these steps to set up the development environment:
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# Clone the repository
+git clone <repository-url>
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Install dependencies
+npm install
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Technologies Used
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+- Frontend: React, TypeScript, Tailwind CSS, shadcn/ui
+- Backend: Supabase
+- AI: GPT-4-mini
+- Authentication: Supabase Auth
+- Payments: Stripe
+- Scheduling: Calendly
+- Database: PostgreSQL (via Supabase)
 
-**Use GitHub Codespaces**
+## Contributing
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
-## What technologies are used for this project?
+## License
 
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-- OpenAI GPT-4-mini for AI responses
-- Supabase for backend services
-- Question credit system for usage management
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/9c6296a1-1c65-4ad6-b1c2-bfa909afcb5a) and click on Share -> Publish.
-
-## I want to use a custom domain - is that possible?
-
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+This project is licensed under the MIT License - see the LICENSE file for details.
