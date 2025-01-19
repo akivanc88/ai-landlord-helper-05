@@ -65,11 +65,11 @@ export const useThreads = (user: User | null, role: string | null) => {
     if (!user) return false;
     
     try {
+      console.log("Updating thread title:", threadId, newTitle);
       const { error } = await supabase
         .from('conversation_threads')
         .update({ title: newTitle })
-        .eq('id', threadId)
-        .eq('user_id', user.id);
+        .eq('id', threadId);
 
       if (error) throw error;
       
@@ -80,6 +80,9 @@ export const useThreads = (user: User | null, role: string | null) => {
             : thread
         )
       );
+
+      // Fetch threads to ensure UI is up to date
+      await fetchThreads();
       return true;
     } catch (error) {
       console.error('Error updating thread title:', error);
@@ -94,6 +97,7 @@ export const useThreads = (user: User | null, role: string | null) => {
 
   const generateThreadTitle = async (threadId: string) => {
     try {
+      console.log("Fetching first message for thread:", threadId);
       // Fetch the first user message from the thread
       const { data: messages, error: messagesError } = await supabase
         .from('messages')
@@ -105,6 +109,8 @@ export const useThreads = (user: User | null, role: string | null) => {
 
       if (messagesError) throw messagesError;
 
+      console.log("First message data:", messages);
+
       if (messages && messages.length > 0) {
         const firstMessage = messages[0].text;
         // Create a title from the first message (truncate if too long)
@@ -112,10 +118,16 @@ export const useThreads = (user: User | null, role: string | null) => {
           ? `${firstMessage.substring(0, 47)}...`
           : firstMessage;
         
+        console.log("Updating title to:", newTitle);
         await updateThreadTitle(threadId, newTitle);
       }
     } catch (error) {
       console.error('Error generating thread title:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update conversation title",
+      });
     }
   };
 

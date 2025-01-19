@@ -16,6 +16,7 @@ export const ChatInput = ({ onSend, isLoading, hasQuestions, threadId }: ChatInp
   const [message, setMessage] = useState("");
   const { user } = useAuth();
   const { generateThreadTitle } = useThreads(user, null);
+  const [isFirstMessage, setIsFirstMessage] = useState(true);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,9 +26,11 @@ export const ChatInput = ({ onSend, isLoading, hasQuestions, threadId }: ChatInp
     setMessage("");
     await onSend(trimmedMessage);
 
-    // Generate title after the first message is sent
-    if (threadId) {
-      generateThreadTitle(threadId);
+    // Generate title only after the first message is sent
+    if (threadId && isFirstMessage) {
+      console.log("Generating title for thread:", threadId);
+      await generateThreadTitle(threadId);
+      setIsFirstMessage(false);
     }
   };
 
