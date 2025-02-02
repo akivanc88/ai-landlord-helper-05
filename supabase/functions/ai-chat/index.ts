@@ -56,9 +56,14 @@ serve(async (req) => {
 5. Use the exact text from citations when quoting.`
       : basePrompt;
 
+    // Create a TransformStream for text streaming
+    const stream = new TransformStream();
+    const writer = stream.writable.getWriter();
+    const encoder = new TextEncoder();
+
+    // Start the OpenAI request
     console.log('Sending request to OpenAI...');
-    // Get AI response
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
@@ -70,33 +75,76 @@ serve(async (req) => {
           { role: 'system', content: systemPrompt },
           { role: 'user', content: message }
         ],
+        stream: true,
       }),
+    }).then(async (response) => {
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`OpenAI API error: ${error}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No reader available');
+
+      let accumulatedResponse = '';
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          // Parse the chunk
+          const chunk = new TextDecoder().decode(value);
+          const lines = chunk.split('\n').filter(line => line.trim() !== '');
+          
+          for (const line of lines) {
+            if (line.includes('[DONE]')) continue;
+            if (!line.startsWith('data: ')) continue;
+            
+            const data = line.slice(5);
+            try {
+              const parsed = JSON.parse(data);
+              const content = parsed.choices[0]?.delta?.content || '';
+              if (content) {
+                accumulatedResponse += content;
+                await writer.write(encoder.encode(content));
+              }
+            } catch (e) {
+              console.error('Error parsing chunk:', e);
+            }
+          }
+        }
+
+        // Save the message after completion
+        await saveAIMessage(supabase, userId, accumulatedResponse, citations);
+        
+        // Deduct question credit
+        const { error: deductError } = await supabase.rpc(
+          'deduct_question',
+          { user_id_param: userId }
+        );
+
+        if (deductError) throw deductError;
+
+      } finally {
+        reader.releaseLock();
+        await writer.close();
+      }
+    }).catch(async (error) => {
+      console.error('Error in streaming:', error);
+      const errorMessage = JSON.stringify({ error: error.message });
+      await writer.write(encoder.encode(errorMessage));
+      await writer.close();
     });
 
-    if (!response.ok) {
-      console.error('OpenAI API error:', await response.text());
-      throw new Error('Failed to get AI response');
-    }
-
-    const data = await response.json();
-    const aiResponse = data.choices[0].message.content;
-    console.log('Received response from OpenAI');
-
-    // Deduct question credit
-    const { error: deductError } = await supabase.rpc(
-      'deduct_question',
-      { user_id_param: userId }
-    );
-
-    if (deductError) throw deductError;
-
-    return new Response(
-      JSON.stringify({ 
-        response: aiResponse,
-        citations: citations
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(stream.readable, {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
 
   } catch (error) {
     console.error('Error in ai-chat function:', error);
@@ -112,3 +160,19 @@ serve(async (req) => {
     );
   }
 });
+
+async function saveAIMessage(supabase: any, userId: string, text: string, citations: any[]) {
+  const { error } = await supabase
+    .from('messages')
+    .insert({
+      user_id: userId,
+      text,
+      is_ai: true,
+      citations
+    });
+
+  if (error) {
+    console.error('Error saving AI message:', error);
+    throw error;
+  }
+}

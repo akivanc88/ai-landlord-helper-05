@@ -10,7 +10,7 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { hasQuestions, checkQuestionCredits, setHasQuestions } = useQuestionCredits(user);
-  const { fetchMessages, saveUserMessage, saveAIMessage } = useMessageManagement(user, role, threadId);
+  const { fetchMessages, saveUserMessage } = useMessageManagement(user, role, threadId);
   const { toast } = useToast();
 
   const sendMessage = async (message: string) => {
@@ -38,8 +38,16 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
       };
       setMessages((prev) => [...prev, newMessage]);
 
+      // Create a placeholder for the AI response
+      const aiMessage: Message = {
+        text: "",
+        isAi: true,
+        timestamp: new Date().toLocaleTimeString(),
+      };
+      setMessages((prev) => [...prev, aiMessage]);
+
       console.log('Sending message to AI chat function:', message);
-      const { data: aiData, error: aiError } = await supabase.functions.invoke('ai-chat', {
+      const response = await supabase.functions.invoke('ai-chat', {
         body: {
           userRole: role,
           message,
@@ -47,9 +55,9 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
         },
       });
 
-      if (aiError) {
-        console.error('AI chat error:', aiError);
-        if (aiError.status === 403 && aiError.message?.includes('No questions available')) {
+      if (response.error) {
+        console.error('AI chat error:', response.error);
+        if (response.error.status === 403 && response.error.message?.includes('No questions available')) {
           setHasQuestions(false);
           toast({
             variant: "destructive",
@@ -58,22 +66,33 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
           });
           return;
         }
-        throw aiError;
+        throw response.error;
       }
 
-      console.log('Received AI response:', aiData);
-      console.log('Citations received:', aiData.citations);
+      const reader = response.data.getReader();
+      let accumulatedText = '';
 
-      await saveAIMessage(aiData.response, aiData.citations);
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-      const aiMessage: Message = {
-        text: aiData.response,
-        isAi: true,
-        timestamp: new Date().toLocaleTimeString(),
-        citations: aiData.citations,
-      };
-      console.log('Creating AI message with citations:', aiMessage);
-      setMessages((prev) => [...prev, aiMessage]);
+          const text = new TextDecoder().decode(value);
+          accumulatedText += text;
+
+          // Update the AI message with the accumulated text
+          setMessages((prev) => {
+            const newMessages = [...prev];
+            const lastMessage = newMessages[newMessages.length - 1];
+            if (lastMessage && lastMessage.isAi) {
+              lastMessage.text = accumulatedText;
+            }
+            return newMessages;
+          });
+        }
+      } finally {
+        reader.releaseLock();
+      }
 
       await checkQuestionCredits();
 

@@ -64,7 +64,7 @@ export const ChatMessage = ({ text, isAi, timestamp, citations }: ChatMessagePro
 
             <TabsContent value="response" className="mt-0">
               <div className="prose max-w-none">
-                <ReactMarkdown>{text}</ReactMarkdown>
+                <ReactMarkdown>{text || "..."}</ReactMarkdown>
               </div>
             </TabsContent>
 
