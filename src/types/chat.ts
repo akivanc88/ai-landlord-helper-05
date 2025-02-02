@@ -6,6 +6,8 @@ export interface Citation {
   sourceType: string;
   sourceName: string;
   content?: string;
+  pageNumber?: number;
+  highlightedText?: string;
 }
 
 export interface Message {
