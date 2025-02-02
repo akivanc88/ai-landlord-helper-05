@@ -69,7 +69,8 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
         throw response.error;
       }
 
-      const reader = response.data.getReader();
+      // Handle streaming response
+      const reader = new ReadableStreamDefaultReader(response.data);
       let accumulatedText = '';
 
       try {

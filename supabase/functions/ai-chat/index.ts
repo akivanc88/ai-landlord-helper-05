@@ -56,7 +56,7 @@ serve(async (req) => {
 5. Use the exact text from citations when quoting.`
       : basePrompt;
 
-    // Create a TransformStream for text streaming
+    // Create a TransformStream for streaming
     const stream = new TransformStream();
     const writer = stream.writable.getWriter();
     const encoder = new TextEncoder();
