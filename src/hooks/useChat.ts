@@ -69,8 +69,9 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
         throw response.error;
       }
 
-      // Handle streaming response
-      const reader = new ReadableStreamDefaultReader(response.data);
+      // Create a TextDecoder to handle the streaming response
+      const decoder = new TextDecoder();
+      const reader = response.data.getReader();
       let accumulatedText = '';
 
       try {
@@ -78,10 +79,11 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
           const { done, value } = await reader.read();
           if (done) break;
 
-          const text = new TextDecoder().decode(value);
-          accumulatedText += text;
+          // Decode the chunk and add it to accumulated text
+          const chunk = decoder.decode(value);
+          accumulatedText += chunk;
 
-          // Update the AI message with the accumulated text
+          // Update the AI message with accumulated text
           setMessages((prev) => {
             const newMessages = [...prev];
             const lastMessage = newMessages[newMessages.length - 1];
@@ -91,6 +93,9 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
             return newMessages;
           });
         }
+      } catch (error) {
+        console.error('Error reading stream:', error);
+        throw error;
       } finally {
         reader.releaseLock();
       }

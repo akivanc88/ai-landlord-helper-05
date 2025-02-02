@@ -56,7 +56,7 @@ serve(async (req) => {
 5. Use the exact text from citations when quoting.`
       : basePrompt;
 
-    // Create a TransformStream for streaming
+    // Set up streaming
     const stream = new TransformStream();
     const writer = stream.writable.getWriter();
     const encoder = new TextEncoder();
@@ -86,14 +86,11 @@ serve(async (req) => {
       const reader = response.body?.getReader();
       if (!reader) throw new Error('No reader available');
 
-      let accumulatedResponse = '';
-
       try {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
-          // Parse the chunk
           const chunk = new TextDecoder().decode(value);
           const lines = chunk.split('\n').filter(line => line.trim() !== '');
           
@@ -106,7 +103,6 @@ serve(async (req) => {
               const parsed = JSON.parse(data);
               const content = parsed.choices[0]?.delta?.content || '';
               if (content) {
-                accumulatedResponse += content;
                 await writer.write(encoder.encode(content));
               }
             } catch (e) {
@@ -114,18 +110,6 @@ serve(async (req) => {
             }
           }
         }
-
-        // Save the message after completion
-        await saveAIMessage(supabase, userId, accumulatedResponse, citations);
-        
-        // Deduct question credit
-        const { error: deductError } = await supabase.rpc(
-          'deduct_question',
-          { user_id_param: userId }
-        );
-
-        if (deductError) throw deductError;
-
       } finally {
         reader.releaseLock();
         await writer.close();
@@ -160,19 +144,3 @@ serve(async (req) => {
     );
   }
 });
-
-async function saveAIMessage(supabase: any, userId: string, text: string, citations: any[]) {
-  const { error } = await supabase
-    .from('messages')
-    .insert({
-      user_id: userId,
-      text,
-      is_ai: true,
-      citations
-    });
-
-  if (error) {
-    console.error('Error saving AI message:', error);
-    throw error;
-  }
-}
