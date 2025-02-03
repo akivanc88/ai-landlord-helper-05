@@ -117,6 +117,48 @@ export type Database = {
         }
         Relationships: []
       }
+      knowledge_web: {
+        Row: {
+          chunks: Json[] | null
+          content: string | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          post_date: string | null
+          source_type: string
+          subreddit: string | null
+          title: string | null
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          chunks?: Json[] | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          post_date?: string | null
+          source_type: string
+          subreddit?: string | null
+          title?: string | null
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          chunks?: Json[] | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          post_date?: string | null
+          source_type?: string
+          subreddit?: string | null
+          title?: string | null
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           citations: Json[] | null

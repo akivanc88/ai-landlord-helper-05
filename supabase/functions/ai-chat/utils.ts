@@ -28,11 +28,12 @@ particularly in high-conflict situations. Your expertise includes:
    - Non-discriminatory practices
 
 Always:
-- Base responses on official BC tenancy regulations
+- Base responses on official BC tenancy regulations and community experiences
 - Emphasize legal compliance and documentation
 - Suggest de-escalation strategies when appropriate
 - Provide clear, actionable steps
 - Include relevant section references from the Residential Tenancy Act
+- Include relevant community experiences and similar situations when available
 - Recommend seeking legal counsel for complex situations
 
 Remember: Your role is to help landlords handle situations professionally and legally while maintaining proper documentation and following established procedures.`;
@@ -65,10 +66,11 @@ with a focus on dispute resolution and tenant protection. Your expertise include
    - Access to community resources and support
 
 Always:
-- Base responses on official BC tenancy regulations
+- Base responses on official BC tenancy regulations and community experiences
 - Emphasize tenant rights and protections
 - Provide clear, step-by-step guidance
 - Include relevant section references from the Residential Tenancy Act
+- Include relevant community experiences and similar situations
 - Recommend seeking legal aid when appropriate
 
 Remember: Your role is to help tenants understand and assert their rights while following proper procedures and maintaining appropriate documentation.`;
@@ -81,9 +83,10 @@ export const corsHeaders = {
 export async function findRelevantContext(supabase: any, message: string): Promise<{ context: string; citations: any[] }> {
   try {
     console.log('Fetching knowledge sources...');
-    const [urlsResponse, pdfsResponse] = await Promise.all([
+    const [urlsResponse, pdfsResponse, webResponse] = await Promise.all([
       supabase.from('knowledge_urls').select('*').eq('is_active', true),
-      supabase.from('knowledge_pdfs').select('*').eq('is_active', true)
+      supabase.from('knowledge_pdfs').select('*').eq('is_active', true),
+      supabase.from('knowledge_web').select('*').eq('is_active', true)
     ]);
 
     if (urlsResponse.error) {
@@ -96,10 +99,16 @@ export async function findRelevantContext(supabase: any, message: string): Promi
       throw pdfsResponse.error;
     }
 
+    if (webResponse.error) {
+      console.error('Error fetching web sources:', webResponse.error);
+      throw webResponse.error;
+    }
+
     // Combine all content for term extraction
     const allContent = [
       ...urlsResponse.data.map(url => url.content || ''),
-      ...pdfsResponse.data.map(pdf => pdf.content || '')
+      ...pdfsResponse.data.map(pdf => pdf.content || ''),
+      ...webResponse.data.map(web => web.content || '')
     ].join(' ');
 
     const allSources = [
@@ -112,6 +121,12 @@ export async function findRelevantContext(supabase: any, message: string): Promi
         ...pdf,
         type: 'pdf',
         displayName: pdf.filename
+      })),
+      ...webResponse.data.map(web => ({
+        ...web,
+        type: 'reddit',
+        displayName: web.title || web.url,
+        subreddit: web.subreddit
       }))
     ];
 
@@ -133,6 +148,7 @@ export async function findRelevantContext(supabase: any, message: string): Promi
           sourceId: source.id,
           sourceType: source.type,
           sourceName: source.displayName,
+          subreddit: source.subreddit,
           text: processedText
         };
       })
@@ -150,14 +166,20 @@ export async function findRelevantContext(supabase: any, message: string): Promi
       const chunkWords = preprocessText(chunk.text);
       return {
         ...chunk,
-        score: calculateRelevanceScore(chunkWords, queryWords, allContent)
+        score: calculateRelevanceScore(
+          chunkWords, 
+          queryWords, 
+          allContent,
+          chunk.sourceType,
+          chunk.subreddit
+        )
       };
     });
 
     const relevantChunks = chunksWithScores
       .filter(chunk => chunk.score > 0)
       .sort((a, b) => b.score - a.score)
-      .slice(0, 3);
+      .slice(0, 5); // Increased to include more relevant chunks
 
     console.log(`Found ${relevantChunks.length} relevant chunks`);
     console.log('Relevance scores:', relevantChunks.map(chunk => chunk.score));
@@ -167,12 +189,18 @@ export async function findRelevantContext(supabase: any, message: string): Promi
       sourceId: chunk.sourceId,
       sourceType: chunk.sourceType,
       sourceName: chunk.sourceName,
-      content: chunk.text
+      content: chunk.text,
+      subreddit: chunk.subreddit
     }));
 
     // Format context with clear section markers and citation references
     const contextWithCitations = relevantChunks
-      .map((chunk, index) => `CITATION [${index + 1}]:\n${chunk.text}\n`)
+      .map((chunk, index) => {
+        const sourceInfo = chunk.sourceType === 'reddit' 
+          ? `[${index + 1}] (From r/${chunk.subreddit}):\n`
+          : `[${index + 1}]:\n`;
+        return `${sourceInfo}${chunk.text}\n`;
+      })
       .join('\n\n');
 
     return { context: contextWithCitations, citations };
