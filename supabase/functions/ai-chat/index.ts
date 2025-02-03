@@ -24,7 +24,10 @@ serve(async (req) => {
       .eq('user_id', userId)
       .maybeSingle();
 
-    if (creditsError) throw creditsError;
+    if (creditsError) {
+      console.error('Error checking credits:', creditsError);
+      throw creditsError;
+    }
 
     if (!credits || credits.remaining_questions <= 0 || 
         (credits.expiry_date && new Date(credits.expiry_date) < new Date())) {
@@ -67,11 +70,13 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4-mini',
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: message }
         ],
+        temperature: 0.7,
+        max_tokens: 2000,
       }),
     });
 
@@ -91,22 +96,30 @@ serve(async (req) => {
       { user_id_param: userId }
     );
 
-    if (deductError) throw deductError;
+    if (deductError) {
+      console.error('Error deducting question credit:', deductError);
+      throw deductError;
+    }
 
     return new Response(
       JSON.stringify({ 
         response: aiResponse,
         citations: citations
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
     );
 
   } catch (error) {
     console.error('Error in ai-chat function:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message,
-        details: 'An unexpected error occurred'
+        error: 'Failed to get AI response',
+        details: error.message || 'An unexpected error occurred'
       }),
       {
         status: 500,
