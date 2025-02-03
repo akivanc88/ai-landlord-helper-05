@@ -4,6 +4,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { LANDLORD_PROMPT, TENANT_PROMPT, corsHeaders, findRelevantContext } from "./utils.ts";
 
 serve(async (req) => {
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -40,12 +41,12 @@ serve(async (req) => {
       );
     }
 
-    // Find relevant context from knowledge base
+    // Find relevant context
     console.log('Searching for relevant context...');
     const { context: relevantContext, citations } = await findRelevantContext(supabase, message);
     console.log('Found relevant context:', relevantContext ? 'Yes' : 'No');
 
-    // Prepare system prompt with context and instructions
+    // Prepare system prompt
     const basePrompt = userRole === 'landlord' ? LANDLORD_PROMPT : TENANT_PROMPT;
     const systemPrompt = relevantContext 
       ? `${basePrompt}\n\nRelevant context from BC housing resources:\n${relevantContext}\n\nInstructions for using citations:
@@ -56,85 +57,93 @@ serve(async (req) => {
 5. Use the exact text from citations when quoting.`
       : basePrompt;
 
-    // Start the OpenAI request
-    console.log('Sending request to OpenAI...');
-    const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: message }
-        ],
-        stream: true,
-      }),
-    });
+    // Create a transform stream to handle the OpenAI response
+    const stream = new TransformStream();
+    const writer = stream.writable.getWriter();
+    const encoder = new TextEncoder();
 
-    if (!openAIResponse.ok) {
-      const error = await openAIResponse.text();
-      throw new Error(`OpenAI API error: ${error}`);
-    }
+    // Start processing in the background
+    (async () => {
+      try {
+        console.log('Sending request to OpenAI...');
+        const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: message }
+            ],
+            stream: true,
+          }),
+        });
 
-    // Set up streaming response
-    const responseStream = new ReadableStream({
-      async start(controller) {
+        if (!openAIResponse.ok) {
+          const error = await openAIResponse.text();
+          throw new Error(`OpenAI API error: ${error}`);
+        }
+
         const reader = openAIResponse.body?.getReader();
         if (!reader) throw new Error('No reader available');
 
+        let accumulatedResponse = '';
+        
         try {
-          let accumulatedResponse = '';
           while (true) {
             const { done, value } = await reader.read();
-            if (done) {
-              // Save the complete message and deduct credit
-              await supabase.from('messages').insert({
-                user_id: userId,
-                text: accumulatedResponse,
-                is_ai: true,
-                citations,
-                role: userRole,
-                thread_id: null // You might want to pass this from the frontend
-              });
-
-              await supabase.rpc('deduct_question', { user_id_param: userId });
-              break;
-            }
+            if (done) break;
 
             const chunk = new TextDecoder().decode(value);
             const lines = chunk.split('\n').filter(line => line.trim() !== '');
-            
+
             for (const line of lines) {
               if (line.includes('[DONE]')) continue;
               if (!line.startsWith('data: ')) continue;
-              
+
               const data = line.slice(5);
               try {
                 const parsed = JSON.parse(data);
                 const content = parsed.choices[0]?.delta?.content || '';
                 if (content) {
                   accumulatedResponse += content;
-                  controller.enqueue(new TextEncoder().encode(content));
+                  await writer.write(encoder.encode(content));
                 }
               } catch (e) {
                 console.error('Error parsing chunk:', e);
               }
             }
           }
-        } catch (error) {
-          console.error('Error in streaming:', error);
-          controller.error(error);
+
+          // Save the complete message and deduct credit
+          await supabase.from('messages').insert({
+            user_id: userId,
+            text: accumulatedResponse,
+            is_ai: true,
+            citations,
+            role: userRole,
+            thread_id: null
+          });
+
+          await supabase.rpc('deduct_question', { user_id_param: userId });
+
         } finally {
           reader.releaseLock();
-          controller.close();
+          await writer.close();
         }
+      } catch (error) {
+        console.error('Error in streaming:', error);
+        const errorMessage = JSON.stringify({ error: error.message });
+        await writer.write(encoder.encode(errorMessage));
+        await writer.close();
       }
-    });
+    })();
 
-    return new Response(responseStream, {
+    // Return the readable stream immediately
+    return new Response(stream.readable, {
       headers: {
         ...corsHeaders,
         'Content-Type': 'text/event-stream',

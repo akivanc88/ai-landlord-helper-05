@@ -31,6 +31,7 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
     try {
       await saveUserMessage(message);
 
+      // Add user message to state
       const newMessage: Message = {
         text: message,
         isAi: false,
@@ -69,11 +70,15 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
         throw response.error;
       }
 
-      // Process the streaming response
-      const reader = response.data.getReader();
-      let accumulatedText = '';
+      // Handle the streaming response
+      const reader = new Response(response.data).body?.getReader();
+      if (!reader) {
+        throw new Error('No reader available from response');
+      }
 
       try {
+        let accumulatedText = '';
+        
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
