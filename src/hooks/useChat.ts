@@ -10,7 +10,7 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { hasQuestions, checkQuestionCredits, setHasQuestions } = useQuestionCredits(user);
-  const { fetchMessages, saveUserMessage } = useMessageManagement(user, role, threadId);
+  const { fetchMessages, saveUserMessage, saveAIMessage } = useMessageManagement(user, role, threadId);
   const { toast } = useToast();
 
   const sendMessage = async (message: string) => {
@@ -31,7 +31,6 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
     try {
       await saveUserMessage(message);
 
-      // Add user message to state
       const newMessage: Message = {
         text: message,
         isAi: false,
@@ -39,16 +38,8 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
       };
       setMessages((prev) => [...prev, newMessage]);
 
-      // Create a placeholder for the AI response
-      const aiMessage: Message = {
-        text: "",
-        isAi: true,
-        timestamp: new Date().toLocaleTimeString(),
-      };
-      setMessages((prev) => [...prev, aiMessage]);
-
       console.log('Sending message to AI chat function:', message);
-      const response = await supabase.functions.invoke('ai-chat', {
+      const { data: aiData, error: aiError } = await supabase.functions.invoke('ai-chat', {
         body: {
           userRole: role,
           message,
@@ -56,47 +47,33 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
         },
       });
 
-      if (response.error) {
-        console.error('AI chat error:', response.error);
-        throw response.error;
-      }
-
-      // Create a Response object from the data
-      const streamResponse = new Response(response.data);
-      const reader = streamResponse.body?.getReader();
-      
-      if (!reader) {
-        throw new Error('No reader available from response');
-      }
-
-      let accumulatedText = '';
-      const decoder = new TextDecoder();
-
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          // Decode the chunk and update the message
-          const chunk = decoder.decode(value);
-          accumulatedText += chunk;
-
-          // Update the AI message with accumulated text
-          setMessages((prev) => {
-            const newMessages = [...prev];
-            const lastMessage = newMessages[newMessages.length - 1];
-            if (lastMessage && lastMessage.isAi) {
-              lastMessage.text = accumulatedText;
-            }
-            return newMessages;
+      if (aiError) {
+        console.error('AI chat error:', aiError);
+        if (aiError.status === 403 && aiError.message?.includes('No questions available')) {
+          setHasQuestions(false);
+          toast({
+            variant: "destructive",
+            title: "No Questions Available",
+            description: "You've used all your questions. Please purchase more credits to continue.",
           });
+          return;
         }
-      } catch (error) {
-        console.error('Error processing stream:', error);
-        throw error;
-      } finally {
-        reader.releaseLock();
+        throw aiError;
       }
+
+      console.log('Received AI response:', aiData);
+      console.log('Citations received:', aiData.citations);
+
+      await saveAIMessage(aiData.response, aiData.citations);
+
+      const aiMessage: Message = {
+        text: aiData.response,
+        isAi: true,
+        timestamp: new Date().toLocaleTimeString(),
+        citations: aiData.citations,
+      };
+      console.log('Creating AI message with citations:', aiMessage);
+      setMessages((prev) => [...prev, aiMessage]);
 
       await checkQuestionCredits();
 
