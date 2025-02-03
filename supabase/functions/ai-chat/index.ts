@@ -44,6 +44,7 @@ serve(async (req) => {
     console.log('Searching for relevant context...');
     const { context: relevantContext, citations } = await findRelevantContext(supabase, message);
     console.log('Found relevant context:', relevantContext ? 'Yes' : 'No');
+    console.log('Citations:', citations);
 
     // Prepare system prompt with context and instructions
     const basePrompt = userRole === 'landlord' ? LANDLORD_PROMPT : TENANT_PROMPT;
@@ -53,7 +54,8 @@ serve(async (req) => {
 2. After quoting, explain or elaborate on the quoted content.
 3. Make sure to integrate multiple citations if they are relevant to the question.
 4. Always maintain proper citation numbering [1], [2], etc.
-5. Use the exact text from citations when quoting.`
+5. Use the exact text from citations when quoting.
+6. For RTA sections, explicitly mention the section number in your response.`
       : basePrompt;
 
     console.log('Sending request to OpenAI...');
@@ -65,7 +67,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: message }
@@ -81,6 +83,7 @@ serve(async (req) => {
     const data = await response.json();
     const aiResponse = data.choices[0].message.content;
     console.log('Received response from OpenAI');
+    console.log('Citations being sent back:', citations);
 
     // Deduct question credit
     const { error: deductError } = await supabase.rpc(

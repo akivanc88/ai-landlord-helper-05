@@ -89,28 +89,32 @@ export async function findRelevantContext(supabase: any, message: string): Promi
       supabase.from('knowledge_web').select('*').eq('is_active', true)
     ]);
 
-    if (urlsResponse.error) {
-      console.error('Error fetching URLs:', urlsResponse.error);
-      throw urlsResponse.error;
-    }
+    if (urlsResponse.error) throw urlsResponse.error;
+    if (pdfsResponse.error) throw pdfsResponse.error;
+    if (webResponse.error) throw webResponse.error;
 
-    if (pdfsResponse.error) {
-      console.error('Error fetching PDFs:', pdfsResponse.error);
-      throw pdfsResponse.error;
-    }
+    // Add RTA sections as a default knowledge source
+    const rtaSections = {
+      id: 'rta-default',
+      sourceType: 'legislation',
+      sourceName: 'Residential Tenancy Act',
+      chunks: [
+        {
+          text: 'Section 46: Non-payment of rent is grounds for eviction with 10 days notice.',
+          section: '46'
+        },
+        {
+          text: 'Section 47: Breach of tenancy agreement requires one month notice period.',
+          section: '47'
+        },
+        {
+          text: 'Section 49: Landlord use of property (owner or relative moving in) requires two months notice.',
+          section: '49'
+        }
+      ]
+    };
 
-    if (webResponse.error) {
-      console.error('Error fetching web sources:', webResponse.error);
-      throw webResponse.error;
-    }
-
-    // Combine all content for term extraction
-    const allContent = [
-      ...urlsResponse.data.map(url => url.content || ''),
-      ...pdfsResponse.data.map(pdf => pdf.content || ''),
-      ...webResponse.data.map(web => web.content || '')
-    ].join(' ');
-
+    // Combine all sources including RTA
     const allSources = [
       ...urlsResponse.data.map(url => ({
         ...url,
@@ -127,11 +131,22 @@ export async function findRelevantContext(supabase: any, message: string): Promi
         type: 'reddit',
         displayName: web.title || web.url,
         subreddit: web.subreddit
-      }))
+      })),
+      rtaSections
     ];
 
-    const allChunksWithMetadata = allSources.flatMap(source => 
-      (source.chunks || []).map(chunk => {
+    const allChunksWithMetadata = allSources.flatMap(source => {
+      if (source === rtaSections) {
+        return source.chunks.map((chunk, index) => ({
+          ...chunk,
+          sourceId: source.id,
+          sourceType: source.sourceType,
+          sourceName: source.sourceName,
+          id: `rta-${chunk.section}`
+        }));
+      }
+
+      return (source.chunks || []).map(chunk => {
         let processedText = chunk.text;
         try {
           if (chunk.text.match(/^[A-Za-z0-9+/=]+$/)) {
@@ -151,8 +166,8 @@ export async function findRelevantContext(supabase: any, message: string): Promi
           subreddit: source.subreddit,
           text: processedText
         };
-      })
-    );
+      });
+    });
 
     console.log(`Found ${allChunksWithMetadata.length} total chunks from knowledge base`);
 
@@ -162,24 +177,21 @@ export async function findRelevantContext(supabase: any, message: string): Promi
     }
 
     const queryWords = preprocessText(message);
-    const chunksWithScores = allChunksWithMetadata.map(chunk => {
-      const chunkWords = preprocessText(chunk.text);
-      return {
-        ...chunk,
-        score: calculateRelevanceScore(
-          chunkWords, 
-          queryWords, 
-          allContent,
-          chunk.sourceType,
-          chunk.subreddit
-        )
-      };
-    });
+    const chunksWithScores = allChunksWithMetadata.map(chunk => ({
+      ...chunk,
+      score: calculateRelevanceScore(
+        preprocessText(chunk.text),
+        queryWords,
+        '',
+        chunk.sourceType,
+        chunk.subreddit
+      )
+    }));
 
     const relevantChunks = chunksWithScores
       .filter(chunk => chunk.score > 0)
       .sort((a, b) => b.score - a.score)
-      .slice(0, 5); // Increased to include more relevant chunks
+      .slice(0, 5);
 
     console.log(`Found ${relevantChunks.length} relevant chunks`);
     console.log('Relevance scores:', relevantChunks.map(chunk => chunk.score));
@@ -190,19 +202,25 @@ export async function findRelevantContext(supabase: any, message: string): Promi
       sourceType: chunk.sourceType,
       sourceName: chunk.sourceName,
       content: chunk.text,
-      subreddit: chunk.subreddit
+      section: chunk.section, // For RTA citations
+      subreddit: chunk.subreddit // For Reddit citations
     }));
 
-    // Format context with clear section markers and citation references
     const contextWithCitations = relevantChunks
       .map((chunk, index) => {
-        const sourceInfo = chunk.sourceType === 'reddit' 
-          ? `[${index + 1}] (From r/${chunk.subreddit}):\n`
-          : `[${index + 1}]:\n`;
+        let sourceInfo = '';
+        if (chunk.sourceType === 'reddit') {
+          sourceInfo = `[${index + 1}] (From r/${chunk.subreddit}):\n`;
+        } else if (chunk.sourceType === 'legislation') {
+          sourceInfo = `[${index + 1}] (RTA Section ${chunk.section}):\n`;
+        } else {
+          sourceInfo = `[${index + 1}]:\n`;
+        }
         return `${sourceInfo}${chunk.text}\n`;
       })
       .join('\n\n');
 
+    console.log('Generated citations:', citations);
     return { context: contextWithCitations, citations };
   } catch (error) {
     console.error('Error finding relevant context:', error);
