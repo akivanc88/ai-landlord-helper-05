@@ -56,14 +56,9 @@ serve(async (req) => {
 5. Use the exact text from citations when quoting.`
       : basePrompt;
 
-    // Set up streaming
-    const stream = new TransformStream();
-    const writer = stream.writable.getWriter();
-    const encoder = new TextEncoder();
-
     // Start the OpenAI request
     console.log('Sending request to OpenAI...');
-    fetch('https://api.openai.com/v1/chat/completions', {
+    const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
@@ -77,51 +72,69 @@ serve(async (req) => {
         ],
         stream: true,
       }),
-    }).then(async (response) => {
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`OpenAI API error: ${error}`);
-      }
-
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error('No reader available');
-
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = new TextDecoder().decode(value);
-          const lines = chunk.split('\n').filter(line => line.trim() !== '');
-          
-          for (const line of lines) {
-            if (line.includes('[DONE]')) continue;
-            if (!line.startsWith('data: ')) continue;
-            
-            const data = line.slice(5);
-            try {
-              const parsed = JSON.parse(data);
-              const content = parsed.choices[0]?.delta?.content || '';
-              if (content) {
-                await writer.write(encoder.encode(content));
-              }
-            } catch (e) {
-              console.error('Error parsing chunk:', e);
-            }
-          }
-        }
-      } finally {
-        reader.releaseLock();
-        await writer.close();
-      }
-    }).catch(async (error) => {
-      console.error('Error in streaming:', error);
-      const errorMessage = JSON.stringify({ error: error.message });
-      await writer.write(encoder.encode(errorMessage));
-      await writer.close();
     });
 
-    return new Response(stream.readable, {
+    if (!openAIResponse.ok) {
+      const error = await openAIResponse.text();
+      throw new Error(`OpenAI API error: ${error}`);
+    }
+
+    // Set up streaming response
+    const responseStream = new ReadableStream({
+      async start(controller) {
+        const reader = openAIResponse.body?.getReader();
+        if (!reader) throw new Error('No reader available');
+
+        try {
+          let accumulatedResponse = '';
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+              // Save the complete message and deduct credit
+              await supabase.from('messages').insert({
+                user_id: userId,
+                text: accumulatedResponse,
+                is_ai: true,
+                citations,
+                role: userRole,
+                thread_id: null // You might want to pass this from the frontend
+              });
+
+              await supabase.rpc('deduct_question', { user_id_param: userId });
+              break;
+            }
+
+            const chunk = new TextDecoder().decode(value);
+            const lines = chunk.split('\n').filter(line => line.trim() !== '');
+            
+            for (const line of lines) {
+              if (line.includes('[DONE]')) continue;
+              if (!line.startsWith('data: ')) continue;
+              
+              const data = line.slice(5);
+              try {
+                const parsed = JSON.parse(data);
+                const content = parsed.choices[0]?.delta?.content || '';
+                if (content) {
+                  accumulatedResponse += content;
+                  controller.enqueue(new TextEncoder().encode(content));
+                }
+              } catch (e) {
+                console.error('Error parsing chunk:', e);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error in streaming:', error);
+          controller.error(error);
+        } finally {
+          reader.releaseLock();
+          controller.close();
+        }
+      }
+    });
+
+    return new Response(responseStream, {
       headers: {
         ...corsHeaders,
         'Content-Type': 'text/event-stream',
