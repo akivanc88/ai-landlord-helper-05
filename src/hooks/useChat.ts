@@ -58,33 +58,27 @@ export const useChat = (user: User | null, role: UserRole | null, threadId: stri
 
       if (response.error) {
         console.error('AI chat error:', response.error);
-        if (response.error.status === 403 && response.error.message?.includes('No questions available')) {
-          setHasQuestions(false);
-          toast({
-            variant: "destructive",
-            title: "No Questions Available",
-            description: "You've used all your questions. Please purchase more credits to continue.",
-          });
-          return;
-        }
         throw response.error;
       }
 
-      // Handle the streaming response
-      const reader = new Response(response.data).body?.getReader();
+      // Create a Response object from the data
+      const streamResponse = new Response(response.data);
+      const reader = streamResponse.body?.getReader();
+      
       if (!reader) {
         throw new Error('No reader available from response');
       }
 
+      let accumulatedText = '';
+      const decoder = new TextDecoder();
+
       try {
-        let accumulatedText = '';
-        
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
           // Decode the chunk and update the message
-          const chunk = new TextDecoder().decode(value);
+          const chunk = decoder.decode(value);
           accumulatedText += chunk;
 
           // Update the AI message with accumulated text

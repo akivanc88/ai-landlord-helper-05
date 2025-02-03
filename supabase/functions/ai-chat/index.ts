@@ -4,7 +4,6 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { LANDLORD_PROMPT, TENANT_PROMPT, corsHeaders, findRelevantContext } from "./utils.ts";
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -30,10 +29,7 @@ serve(async (req) => {
     if (!credits || credits.remaining_questions <= 0 || 
         (credits.expiry_date && new Date(credits.expiry_date) < new Date())) {
       return new Response(
-        JSON.stringify({ 
-          error: 'No questions available',
-          details: !credits ? 'No credit record found' : 'No remaining credits or credits expired'
-        }),
+        JSON.stringify({ error: 'No questions available' }),
         { 
           status: 403,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -49,20 +45,15 @@ serve(async (req) => {
     // Prepare system prompt
     const basePrompt = userRole === 'landlord' ? LANDLORD_PROMPT : TENANT_PROMPT;
     const systemPrompt = relevantContext 
-      ? `${basePrompt}\n\nRelevant context from BC housing resources:\n${relevantContext}\n\nInstructions for using citations:
-1. When you find relevant information in the provided citations, quote it directly using "..." and cite the source using [X].
-2. After quoting, explain or elaborate on the quoted content.
-3. Make sure to integrate multiple citations if they are relevant to the question.
-4. Always maintain proper citation numbering [1], [2], etc.
-5. Use the exact text from citations when quoting.`
+      ? `${basePrompt}\n\nRelevant context from BC housing resources:\n${relevantContext}`
       : basePrompt;
 
-    // Create a transform stream to handle the OpenAI response
+    // Create transform stream for handling the response
     const stream = new TransformStream();
     const writer = stream.writable.getWriter();
     const encoder = new TextEncoder();
 
-    // Start processing in the background
+    // Process in background
     (async () => {
       try {
         console.log('Sending request to OpenAI...');
@@ -118,7 +109,7 @@ serve(async (req) => {
             }
           }
 
-          // Save the complete message and deduct credit
+          // Save the complete message
           await supabase.from('messages').insert({
             user_id: userId,
             text: accumulatedResponse,
@@ -128,6 +119,7 @@ serve(async (req) => {
             thread_id: null
           });
 
+          // Deduct question credit
           await supabase.rpc('deduct_question', { user_id_param: userId });
 
         } finally {
@@ -142,7 +134,7 @@ serve(async (req) => {
       }
     })();
 
-    // Return the readable stream immediately
+    // Return the readable stream
     return new Response(stream.readable, {
       headers: {
         ...corsHeaders,
@@ -155,10 +147,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in ai-chat function:', error);
     return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        details: 'An unexpected error occurred'
-      }),
+      JSON.stringify({ error: error.message }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
