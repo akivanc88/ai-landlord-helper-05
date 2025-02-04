@@ -10,36 +10,20 @@ const corsHeaders = {
 async function processWithLlamaparse(pdfContent: Uint8Array): Promise<{ text: string, chunks: any[] }> {
   console.log('Processing PDF with Llamaparse...');
   
-  // Create form data with proper boundary
-  const boundary = '----WebKitFormBoundaryABC123';
+  // Create form data
+  const formData = new FormData();
   
-  // Convert Uint8Array to base64 in chunks to avoid call stack issues
-  let base64Content = '';
-  const chunkSize = 32768; // Process in 32KB chunks
-  
-  for (let i = 0; i < pdfContent.length; i += chunkSize) {
-    const chunk = pdfContent.slice(i, i + chunkSize);
-    base64Content += btoa(String.fromCharCode(...new Uint8Array(chunk)));
-  }
-  
-  // Create the multipart form-data body
-  const body = [
-    `--${boundary}`,
-    'Content-Disposition: form-data; name="file"; filename="document.pdf"',
-    'Content-Type: application/pdf',
-    '',
-    base64Content,
-    `--${boundary}--`
-  ].join('\r\n');
+  // Convert Uint8Array to Blob
+  const blob = new Blob([pdfContent], { type: 'application/pdf' });
+  formData.append('file', blob, 'document.pdf');
 
   console.log('Sending request to Llamaparse API...');
   const response = await fetch('https://api.llamaparse.com/v1/parse', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${Deno.env.get('LLAMAPARSE_API_KEY')}`,
-      'Content-Type': `multipart/form-data; boundary=${boundary}`,
     },
-    body: body,
+    body: formData,
   });
 
   if (!response.ok) {
@@ -67,7 +51,6 @@ async function processWithLlamaparse(pdfContent: Uint8Array): Promise<{ text: st
   };
 }
 
-// Function to process URLs (keeping existing logic)
 function processUrl(content: string, maxChunkSize = 1000): { text: string, chunks: any[] } {
   const cleanText = content
     .replace(/[\x00-\x1F\x7F-\x9F]/g, '')
