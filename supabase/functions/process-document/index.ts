@@ -9,17 +9,28 @@ const corsHeaders = {
 async function processWithLlamaparse(pdfContent: Uint8Array): Promise<{ text: string, chunks: any[] }> {
   console.log('Processing PDF with Llamaparse...');
   
-  const formData = new FormData();
-  const blob = new Blob([pdfContent], { type: 'application/pdf' });
-  formData.append('file', blob, 'document.pdf');
+  // Create form data boundary
+  const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
   
+  // Create the multipart form-data manually
+  const formDataContent = [
+    `--${boundary}`,
+    'Content-Disposition: form-data; name="file"; filename="document.pdf"',
+    'Content-Type: application/pdf',
+    '',
+    // Need to use Uint8Array directly here
+    new TextDecoder().decode(pdfContent),
+    `--${boundary}--`
+  ].join('\r\n');
+
   console.log('Sending request to Llamaparse API...');
   const response = await fetch('https://api.llamaparse.com/v1/parse', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${Deno.env.get('LLAMAPARSE_API_KEY')}`,
+      'Content-Type': `multipart/form-data; boundary=${boundary}`,
     },
-    body: formData,
+    body: formDataContent,
   });
 
   if (!response.ok) {
