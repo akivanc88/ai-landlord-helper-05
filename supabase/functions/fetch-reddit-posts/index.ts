@@ -12,6 +12,13 @@ const SUBREDDITS = [
   'legaladvicecanada'
 ];
 
+interface RedditTokenResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  scope: string;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -25,15 +32,42 @@ serve(async (req) => {
 
     console.log('Starting Reddit data collection...');
 
+    // Get Reddit OAuth credentials from environment variables
+    const clientId = Deno.env.get('REDDIT_CLIENT_ID');
+    const clientSecret = Deno.env.get('REDDIT_CLIENT_SECRET');
+
+    if (!clientId || !clientSecret) {
+      throw new Error('Reddit credentials not configured');
+    }
+
+    // Get access token
+    console.log('Obtaining Reddit access token...');
+    const tokenResponse = await fetch('https://www.reddit.com/api/v1/access_token', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: 'grant_type=client_credentials',
+    });
+
+    if (!tokenResponse.ok) {
+      throw new Error(`Failed to get access token: ${tokenResponse.status}`);
+    }
+
+    const tokenData: RedditTokenResponse = await tokenResponse.json();
+    console.log('Successfully obtained access token');
+
     for (const subreddit of SUBREDDITS) {
       console.log(`Fetching posts from r/${subreddit}...`);
       
-      // Fetch posts from subreddit
+      // Fetch posts using OAuth
       const response = await fetch(
-        `https://www.reddit.com/r/${subreddit}/hot.json?limit=50`,
+        `https://oauth.reddit.com/r/${subreddit}/hot?limit=50`,
         {
           headers: {
-            'User-Agent': 'Mozilla/5.0 (compatible; RentalBot/1.0)',
+            'Authorization': `Bearer ${tokenData.access_token}`,
+            'User-Agent': 'RentalBot/1.0 (by /u/your_reddit_username)',
           }
         }
       );
@@ -88,7 +122,7 @@ serve(async (req) => {
         }
       }
       
-      // Wait a bit between subreddits to avoid rate limiting
+      // Wait between subreddits to respect rate limits
       await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
