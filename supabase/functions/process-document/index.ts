@@ -10,12 +10,15 @@ const corsHeaders = {
 async function processWithLlamaparse(pdfContent: Uint8Array): Promise<{ text: string, chunks: any[] }> {
   console.log('Processing PDF with Llamaparse...');
   
+  // Convert Uint8Array to base64
+  const base64Content = btoa(String.fromCharCode.apply(null, pdfContent));
+  
+  // Create the PDF file from base64
+  const pdfBlob = await fetch(`data:application/pdf;base64,${base64Content}`).then(res => res.blob());
+  
   // Create form data
   const formData = new FormData();
-  
-  // Convert Uint8Array to Blob
-  const blob = new Blob([pdfContent], { type: 'application/pdf' });
-  formData.append('file', blob, 'document.pdf');
+  formData.append('file', pdfBlob, 'document.pdf');
 
   console.log('Sending request to Llamaparse API...');
   const response = await fetch('https://api.llamaparse.com/v1/parse', {
