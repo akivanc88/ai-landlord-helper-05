@@ -7,32 +7,49 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Function to decode base64 content if needed
-function decodeBase64IfNeeded(content: string): string {
-  try {
-    // Check if the content is base64 encoded
-    if (content.match(/^[A-Za-z0-9+/=]+$/)) {
-      return atob(content);
-    }
-    return content;
-  } catch (error) {
-    console.error('Error decoding content:', error);
-    return content;
+async function processWithLlamaparse(file: File): Promise<{ text: string, chunks: any[] }> {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const response = await fetch('https://api.llamaparse.com/v1/parse', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${Deno.env.get('LLAMAPARSE_API_KEY')}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Llamaparse API error: ${error}`);
   }
+
+  const result = await response.json();
+  
+  // Process the chunks from Llamaparse
+  const chunks = result.chunks.map((chunk: any, index: number) => ({
+    text: chunk.text,
+    metadata: {
+      position: index,
+      pageNumber: chunk.pageNumber,
+      bbox: chunk.bbox,
+    }
+  }));
+
+  return {
+    text: result.text,
+    chunks
+  };
 }
 
-// Function to sanitize and chunk text
-function processText(text: string, maxChunkSize = 1000): { text: string, metadata: { position: number } }[] {
-  // First decode if needed
-  const decodedText = decodeBase64IfNeeded(text);
-  
-  // Remove non-printable characters and normalize whitespace
-  const cleanText = decodedText
-    .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // Remove control characters
-    .replace(/\s+/g, ' ') // Normalize whitespace
-    .replace(/[^\x20-\x7E\u00A0-\u00FF]/g, '') // Remove non-ASCII characters
-    .replace(/\\n/g, '\n') // Convert literal \n to newlines
-    .replace(/\\"/g, '"') // Convert escaped quotes
+// Function to process URLs (keeping existing logic)
+function processUrl(content: string, maxChunkSize = 1000): { text: string, chunks: any[] } {
+  const cleanText = content
+    .replace(/[\x00-\x1F\x7F-\x9F]/g, '')
+    .replace(/\s+/g, ' ')
+    .replace(/[^\x20-\x7E\u00A0-\u00FF]/g, '')
+    .replace(/\\n/g, '\n')
+    .replace(/\\"/g, '"')
     .trim();
 
   const words = cleanText.split(' ');
@@ -61,7 +78,7 @@ function processText(text: string, maxChunkSize = 1000): { text: string, metadat
     });
   }
 
-  return chunks;
+  return { text: cleanText, chunks };
 }
 
 serve(async (req) => {
@@ -70,21 +87,22 @@ serve(async (req) => {
   }
 
   try {
-    const { type, content, id } = await req.json();
+    const { type, content, id, file } = await req.json();
     
-    if (!type || !content || !id) {
+    if (!type || !id) {
       throw new Error('Missing required parameters');
     }
 
     console.log(`Processing ${type} document with ID: ${id}`);
-    console.log('Content preview:', content.substring(0, 100));
 
-    // Process and sanitize the content
-    const chunks = processText(content);
-    
-    // Log the first chunk for debugging
-    if (chunks.length > 0) {
-      console.log('First processed chunk preview:', chunks[0].text.substring(0, 100));
+    let processedContent;
+    if (type === 'pdf') {
+      // Convert base64 to File object
+      const binaryContent = Uint8Array.from(atob(content), c => c.charCodeAt(0));
+      const file = new File([binaryContent], 'document.pdf', { type: 'application/pdf' });
+      processedContent = await processWithLlamaparse(file);
+    } else {
+      processedContent = processUrl(content);
     }
 
     const supabase = createClient(
@@ -96,9 +114,11 @@ serve(async (req) => {
     const { error: updateError } = await supabase
       .from(type === 'url' ? 'knowledge_urls' : 'knowledge_pdfs')
       .update({
-        content: chunks[0]?.text || '', // Store the first chunk as the main content
-        chunks,
+        content: processedContent.text,
+        chunks: processedContent.chunks,
         updated_at: new Date().toISOString(),
+        status: 'processed',
+        processed_at: new Date().toISOString(),
       })
       .eq('id', id);
 
@@ -110,8 +130,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true,
-        processedChunks: chunks.length,
-        firstChunkPreview: chunks[0]?.text.substring(0, 100)
+        processedChunks: processedContent.chunks.length,
+        firstChunkPreview: processedContent.chunks[0]?.text.substring(0, 100)
       }),
       { 
         headers: { 

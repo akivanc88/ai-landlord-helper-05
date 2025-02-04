@@ -9,7 +9,6 @@ export const useKnowledgeBase = () => {
   const addUrl = async (url: string, title: string) => {
     setIsLoading(true);
     try {
-      // First, insert the URL into the database
       const { data, error } = await supabase
         .from('knowledge_urls')
         .insert({ url, title })
@@ -18,11 +17,9 @@ export const useKnowledgeBase = () => {
 
       if (error) throw error;
 
-      // Fetch the content and process it
       const response = await fetch(url);
       const content = await response.text();
 
-      // Process the content using the Edge Function
       const { error: processError } = await supabase.functions.invoke('process-document', {
         body: { type: 'url', content, id: data.id },
       });
@@ -67,25 +64,31 @@ export const useKnowledgeBase = () => {
         .insert({
           filename: file.name,
           file_path: filePath,
+          status: 'pending',
+          mime_type: file.type,
+          size_bytes: file.size,
         })
         .select()
         .single();
 
       if (dbError) throw dbError;
 
-      // Read the file content
-      const fileReader = new FileReader();
-      const fileContent = await new Promise<string>((resolve, reject) => {
-        fileReader.onload = () => resolve(fileReader.result as string);
-        fileReader.onerror = () => reject(fileReader.error);
-        fileReader.readAsText(file);
+      // Convert file to base64 for processing
+      const base64Content = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64 = (reader.result as string).split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
       });
       
       // Process the PDF using the Edge Function
       const { error: processError } = await supabase.functions.invoke('process-document', {
         body: { 
           type: 'pdf', 
-          content: fileContent, 
+          content: base64Content, 
           id: data.id 
         },
       });
@@ -94,7 +97,7 @@ export const useKnowledgeBase = () => {
 
       toast({
         title: "Success",
-        description: "PDF uploaded to knowledge base",
+        description: "PDF uploaded and processed successfully",
       });
 
       return true;
@@ -103,7 +106,7 @@ export const useKnowledgeBase = () => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to upload PDF",
+        description: "Failed to upload and process PDF",
       });
       return false;
     } finally {

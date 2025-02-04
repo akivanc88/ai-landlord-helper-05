@@ -55,32 +55,47 @@ export type Database = {
         Row: {
           chunks: Json[] | null
           content: string | null
-          created_at: string
+          created_at: string | null
           file_path: string
           filename: string
           id: string
           is_active: boolean | null
-          updated_at: string
+          metadata: Json | null
+          mime_type: string | null
+          processed_at: string | null
+          size_bytes: number | null
+          status: string | null
+          updated_at: string | null
         }
         Insert: {
           chunks?: Json[] | null
           content?: string | null
-          created_at?: string
+          created_at?: string | null
           file_path: string
           filename: string
           id?: string
           is_active?: boolean | null
-          updated_at?: string
+          metadata?: Json | null
+          mime_type?: string | null
+          processed_at?: string | null
+          size_bytes?: number | null
+          status?: string | null
+          updated_at?: string | null
         }
         Update: {
           chunks?: Json[] | null
           content?: string | null
-          created_at?: string
+          created_at?: string | null
           file_path?: string
           filename?: string
           id?: string
           is_active?: boolean | null
-          updated_at?: string
+          metadata?: Json | null
+          mime_type?: string | null
+          processed_at?: string | null
+          size_bytes?: number | null
+          status?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
