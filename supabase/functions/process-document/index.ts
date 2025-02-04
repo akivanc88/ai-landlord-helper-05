@@ -8,6 +8,8 @@ const corsHeaders = {
 };
 
 async function processWithLlamaparse(file: File): Promise<{ text: string, chunks: any[] }> {
+  console.log('Processing PDF with Llamaparse...');
+  
   const formData = new FormData();
   formData.append('file', file);
   
@@ -21,10 +23,12 @@ async function processWithLlamaparse(file: File): Promise<{ text: string, chunks
 
   if (!response.ok) {
     const error = await response.text();
+    console.error('Llamaparse API error:', error);
     throw new Error(`Llamaparse API error: ${error}`);
   }
 
   const result = await response.json();
+  console.log('Llamaparse processing successful');
   
   // Process the chunks from Llamaparse
   const chunks = result.chunks.map((chunk: any, index: number) => ({
@@ -87,7 +91,7 @@ serve(async (req) => {
   }
 
   try {
-    const { type, content, id, file } = await req.json();
+    const { type, content, id } = await req.json();
     
     if (!type || !id) {
       throw new Error('Missing required parameters');
@@ -100,7 +104,10 @@ serve(async (req) => {
       // Convert base64 to File object
       const binaryContent = Uint8Array.from(atob(content), c => c.charCodeAt(0));
       const file = new File([binaryContent], 'document.pdf', { type: 'application/pdf' });
+      
+      console.log('Sending PDF to Llamaparse for processing...');
       processedContent = await processWithLlamaparse(file);
+      console.log('Llamaparse processing completed');
     } else {
       processedContent = processUrl(content);
     }
