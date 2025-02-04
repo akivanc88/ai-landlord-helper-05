@@ -1,18 +1,19 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-async function processWithLlamaparse(file: File): Promise<{ text: string, chunks: any[] }> {
+async function processWithLlamaparse(pdfContent: Uint8Array): Promise<{ text: string, chunks: any[] }> {
   console.log('Processing PDF with Llamaparse...');
   
   const formData = new FormData();
-  formData.append('file', file);
+  const blob = new Blob([pdfContent], { type: 'application/pdf' });
+  formData.append('file', blob, 'document.pdf');
   
+  console.log('Sending request to Llamaparse API...');
   const response = await fetch('https://api.llamaparse.com/v1/parse', {
     method: 'POST',
     headers: {
@@ -101,12 +102,11 @@ serve(async (req) => {
 
     let processedContent;
     if (type === 'pdf') {
-      // Convert base64 to File object
+      // Convert base64 to Uint8Array
       const binaryContent = Uint8Array.from(atob(content), c => c.charCodeAt(0));
-      const file = new File([binaryContent], 'document.pdf', { type: 'application/pdf' });
       
       console.log('Sending PDF to Llamaparse for processing...');
-      processedContent = await processWithLlamaparse(file);
+      processedContent = await processWithLlamaparse(binaryContent);
       console.log('Llamaparse processing completed');
     } else {
       processedContent = processUrl(content);
