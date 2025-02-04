@@ -13,8 +13,14 @@ async function processWithLlamaparse(pdfContent: Uint8Array): Promise<{ text: st
   // Create form data with proper boundary
   const boundary = '----WebKitFormBoundaryABC123';
   
-  // Convert Uint8Array to base64
-  const base64Content = btoa(String.fromCharCode.apply(null, pdfContent));
+  // Convert Uint8Array to base64 in chunks to avoid call stack issues
+  let base64Content = '';
+  const chunkSize = 32768; // Process in 32KB chunks
+  
+  for (let i = 0; i < pdfContent.length; i += chunkSize) {
+    const chunk = pdfContent.slice(i, i + chunkSize);
+    base64Content += btoa(String.fromCharCode(...new Uint8Array(chunk)));
+  }
   
   // Create the multipart form-data body
   const body = [
