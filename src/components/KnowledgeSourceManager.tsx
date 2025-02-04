@@ -23,6 +23,7 @@ type KnowledgeSource = {
 export const KnowledgeSourceManager = () => {
   const [sources, setSources] = useState<KnowledgeSource[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
   const { toast } = useToast();
 
   const fetchSources = async () => {
@@ -97,6 +98,29 @@ export const KnowledgeSourceManager = () => {
     }
   };
 
+  const fetchRedditPosts = async () => {
+    setIsFetching(true);
+    try {
+      const { error } = await supabase.functions.invoke('fetch-reddit-posts');
+      
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Reddit posts fetched successfully",
+      });
+    } catch (error) {
+      console.error('Error fetching Reddit posts:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to fetch Reddit posts",
+      });
+    } finally {
+      setIsFetching(false);
+    }
+  };
+
   useEffect(() => {
     fetchSources();
   }, []);
@@ -109,6 +133,12 @@ export const KnowledgeSourceManager = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-primary">Knowledge Sources</h2>
+        <Button 
+          onClick={fetchRedditPosts}
+          disabled={isFetching}
+        >
+          {isFetching ? "Fetching..." : "Fetch Reddit Posts"}
+        </Button>
       </div>
 
       <Table>
